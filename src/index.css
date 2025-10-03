@@ -1,0 +1,200 @@
+/* Updated src/index.css with Parisian design system */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Parisian Doors Design System */
+
+@layer base {
+  :root {
+    /* Parisian Color Palette */
+    --background: #FAF7F2; /* Off-White */
+    --foreground: #1C1C1C; /* Deep Night */
+
+    --card: #E5E3DF; /* Stone Grey */
+    --card-foreground: #1C1C1C;
+
+    --popover: #FAF7F2;
+    --popover-foreground: #1C1C1C;
+
+    --primary: #2E4A62; /* Haussmann Blue */
+    --primary-foreground: #FAF7F2;
+
+    --secondary: #9BBFA2; /* Sage Green */
+    --secondary-foreground: #1C1C1C;
+
+    --muted: #E5E3DF; /* Stone Grey */
+    --muted-foreground: #555555; /* Charcoal Grey */
+
+    --accent: #D9A441; /* Ochre Yellow */
+    --accent-foreground: #1C1C1C;
+
+    --destructive: #A6473C; /* Brick Red */
+    --destructive-foreground: #FAF7F2;
+
+    --border: #E5E3DF;
+    --input: #E5E3DF;
+    --ring: #2E4A62;
+
+    /* Custom Parisian colors */
+    --haussmann: #2E4A62;
+    --sage: #9BBFA2;
+    --stone: #E5E3DF;
+    --brick: #A6473C;
+    --ochre: #D9A441;
+    --charcoal: #555555;
+    --cream: #FAF7F2;
+    --night: #1C1C1C;
+
+    --radius: 16px;
+  }
+
+  .dark {
+    --background: #1C1C1C;
+    --foreground: #FAF7F2;
+    --card: #2E4A62;
+    --card-foreground: #FAF7F2;
+    --popover: #1C1C1C;
+    --popover-foreground: #FAF7F2;
+    --primary: #9BBFA2;
+    --primary-foreground: #1C1C1C;
+    --secondary: #2E4A62;
+    --secondary-foreground: #FAF7F2;
+    --muted: #555555;
+    --muted-foreground: #E5E3DF;
+    --accent: #D9A441;
+    --accent-foreground: #1C1C1C;
+    --destructive: #A6473C;
+    --destructive-foreground: #FAF7F2;
+    --border: #555555;
+    --input: #555555;
+    --ring: #9BBFA2;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+  }
+
+  h1 {
+    @apply text-3xl font-bold tracking-tight;
+  }
+
+  h2 {
+    @apply text-2xl font-semibold;
+  }
+
+  h3 {
+    @apply text-lg font-semibold;
+  }
+
+  /* Custom scrollbar for webkit browsers */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: theme('colors.stone');
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: theme('colors.charcoal');
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: theme('colors.night');
+  }
+}
+
+@layer components {
+  /* Parisian UI Components */
+  .btn-parisian {
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-haussmann focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 shadow-parisian hover:shadow-parisian-lg transform hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  .card-parisian {
+    @apply rounded-lg border border-stone bg-cream text-night shadow-parisian hover:shadow-parisian-lg transition-all duration-300 backdrop-blur-sm;
+  }
+
+  .text-parisian-primary {
+    @apply text-night font-medium;
+  }
+
+  .text-parisian-secondary {
+    @apply text-charcoal;
+  }
+
+  .bg-parisian-surface {
+    @apply bg-stone;
+  }
+
+  .gradient-parisian {
+    background: linear-gradient(135deg, theme('colors.haussmann'), theme('colors.sage'));
+  }
+
+  .gradient-parisian-warm {
+    background: linear-gradient(135deg, theme('colors.ochre'), theme('colors.brick'));
+  }
+
+  /* Floating Action Button */
+  .fab-parisian {
+    @apply fixed bottom-20 right-4 w-14 h-14 rounded-lg shadow-parisian-xl bg-haussmann text-cream hover:bg-haussmann/90 hover:shadow-parisian-xl transition-all duration-300 z-40 border-2 border-cream/20;
+  }
+
+  /* Typography utilities */
+  .font-display {
+    font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+  }
+
+  .font-body {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  /* Animation utilities */
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(3deg); }
+  }
+
+  /* Custom shadows */
+  .shadow-parisian {
+    box-shadow: 0 4px 16px rgba(28, 28, 28, 0.08);
+  }
+
+  .shadow-parisian-lg {
+    box-shadow: 0 8px 32px rgba(28, 28, 28, 0.12);
+  }
+
+  .shadow-parisian-xl {
+    box-shadow: 0 12px 48px rgba(28, 28, 28, 0.15);
+  }
+
+  /* Text utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+}
