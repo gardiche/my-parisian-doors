@@ -1,7 +1,7 @@
 // src/types/door.ts
 
 export type DoorMaterial = 'Wood' | 'Metal' | 'Glass' | 'Stone' | 'Composite';
-export type DoorColor = 'Blue' | 'Green' | 'Red/Burgundy' | 'Black' | 'Grey' | 'Natural Wood' | 'White' | 'Yellow' | 'Multicolor';
+export type DoorColor = 'Green' | 'Blue' | 'Black' | 'White' | 'Cream' | 'Brown' | 'Red' | 'Gray';
 export type DoorStyle = 'Haussmann' | 'Art Nouveau' | 'Modern' | 'Vintage' | 'Industrial' | 'Classic';
 export type DoorArrondissement = '1st' | '2nd' | '3rd' | '4th' | '5th' | '6th' | '7th' | '8th' | '9th' | '10th' | '11th' | '12th' | '13th' | '14th' | '15th' | '16th' | '17th' | '18th' | '19th' | '20th';
 export type DoorOrnamentation = 'Ironwork' | 'Stained Glass' | 'Wood Carving' | 'Columns' | 'Pediment' | 'Door Knocker' | 'Moldings' | 'Flowers';
@@ -11,11 +11,11 @@ export interface Door {
   imageUrl: string;
   location: string;
   neighborhood: string;
-  arrondissement?: DoorArrondissement;
   material: DoorMaterial;
   color: DoorColor;
   style: DoorStyle;
-  ornamentation?: DoorOrnamentation[];
+  arrondissement?: DoorArrondissement;
+  ornamentations?: DoorOrnamentation[];
   description?: string;
   isFavorite: boolean;
   // Timeline fields
@@ -37,18 +37,18 @@ export interface DoorFilter {
   ornamentations: DoorOrnamentation[];
 }
 
-// Sample data with your door images (English) - Updated with new fields
+// Sample data with your door images (English)
 export const sampleDoors: Door[] = [
   {
     id: '1',
     imageUrl: '/door-1.jpg',
     location: 'Rue des Rosiers',
     neighborhood: 'Le Marais',
-    arrondissement: '4th',
     material: 'Wood',
     color: 'Green',
     style: 'Haussmann',
-    ornamentation: ['Wood Carving', 'Moldings'],
+    arrondissement: '4th',
+    ornamentations: ['Wood Carving', 'Door Knocker'],
     description: 'A magnificent Haussmannian door with complex carved details and a green patina characteristic of the Marais district.',
     isFavorite: false,
     addedBy: 'preset'
@@ -58,11 +58,11 @@ export const sampleDoors: Door[] = [
     imageUrl: '/door-2.jpg',
     location: 'Place du Tertre',
     neighborhood: 'Montmartre',
-    arrondissement: '18th',
     material: 'Wood',
     color: 'Blue',
     style: 'Art Nouveau',
-    ornamentation: ['Stained Glass', 'Flowers'],
+    arrondissement: '18th',
+    ornamentations: ['Stained Glass', 'Ironwork'],
     description: 'Art Nouveau door with delicate floral motifs, typical of early 20th century Montmartre architecture.',
     isFavorite: true,
     addedBy: 'preset'
@@ -72,11 +72,11 @@ export const sampleDoors: Door[] = [
     imageUrl: '/door-3.jpg',
     location: 'Boulevard Saint-Germain',
     neighborhood: 'Saint-Germain',
-    arrondissement: '6th',
     material: 'Metal',
     color: 'Black',
     style: 'Modern',
-    ornamentation: ['Columns'],
+    arrondissement: '6th',
+    ornamentations: [],
     description: 'Contemporary minimalist design with bold geometric lines, perfectly integrated into the Parisian urban landscape.',
     isFavorite: false,
     addedBy: 'preset'
@@ -86,11 +86,11 @@ export const sampleDoors: Door[] = [
     imageUrl: '/door-4.jpg',
     location: 'Avenue des Champs-Élysées',
     neighborhood: 'Champs-Élysées',
-    arrondissement: '8th',
     material: 'Glass',
     color: 'White',
     style: 'Modern',
-    ornamentation: ['Ironwork', 'Door Knocker'],
+    arrondissement: '8th',
+    ornamentations: ['Columns'],
     description: 'Luxurious entrance to a prestigious boutique with frosted glass and golden accents.',
     isFavorite: false,
     addedBy: 'preset'
@@ -100,11 +100,11 @@ export const sampleDoors: Door[] = [
     imageUrl: '/door-1.jpg',
     location: 'Rue Mouffetard',
     neighborhood: 'Latin Quarter',
-    arrondissement: '5th',
     material: 'Wood',
-    color: 'Natural Wood',
+    color: 'Brown',
     style: 'Vintage',
-    ornamentation: ['Wood Carving', 'Moldings', 'Door Knocker'],
+    arrondissement: '5th',
+    ornamentations: ['Door Knocker', 'Moldings'],
     description: 'Ancient door with a rich history, preserved in its original state with authentic hardware.',
     isFavorite: true,
     addedBy: 'preset'
@@ -114,11 +114,11 @@ export const sampleDoors: Door[] = [
     imageUrl: '/door-2.jpg',
     location: 'Place du Trocadéro',
     neighborhood: 'Trocadéro',
-    arrondissement: '16th',
     material: 'Stone',
-    color: 'Grey',
+    color: 'Cream',
     style: 'Classic',
-    ornamentation: ['Columns', 'Pediment'],
+    arrondissement: '16th',
+    ornamentations: ['Columns', 'Pediment'],
     description: 'Majestic dressed stone entrance with ornamental sculptures typical of French classical architecture.',
     isFavorite: false,
     addedBy: 'preset'
@@ -128,11 +128,11 @@ export const sampleDoors: Door[] = [
     imageUrl: '/door-3.jpg',
     location: 'Rue de la Bastille',
     neighborhood: 'Bastille',
-    arrondissement: '11th',
     material: 'Metal',
-    color: 'Red/Burgundy',
+    color: 'Red',
     style: 'Industrial',
-    ornamentation: ['Ironwork'],
+    arrondissement: '11th',
+    ornamentations: ['Ironwork'],
     description: 'Modern industrial style with raw metallic elements and vibrant red color.',
     isFavorite: false,
     addedBy: 'preset'
@@ -142,11 +142,11 @@ export const sampleDoors: Door[] = [
     imageUrl: '/door-4.jpg',
     location: 'Avenue de l\'Opéra',
     neighborhood: 'Opéra',
-    arrondissement: '2nd',
     material: 'Wood',
     color: 'Black',
     style: 'Haussmann',
-    ornamentation: ['Wood Carving', 'Moldings', 'Pediment'],
+    arrondissement: '9th',
+    ornamentations: ['Wood Carving', 'Moldings'],
     description: 'Carefully restored Haussmannian door, maintaining its original elegance while integrating contemporary elements.',
     isFavorite: true,
     addedBy: 'preset'
@@ -156,11 +156,11 @@ export const sampleDoors: Door[] = [
     imageUrl: '/door-1.jpg',
     location: 'Boulevard de Clichy',
     neighborhood: 'Pigalle',
-    arrondissement: '9th',
     material: 'Composite',
-    color: 'Yellow',
+    color: 'Gray',
     style: 'Modern',
-    ornamentation: [],
+    arrondissement: '18th',
+    ornamentations: [],
     description: 'Avant-garde design using composite materials with a sophisticated matte finish.',
     isFavorite: false,
     addedBy: 'preset'
@@ -170,11 +170,11 @@ export const sampleDoors: Door[] = [
     imageUrl: '/door-2.jpg',
     location: 'Rue de Belleville',
     neighborhood: 'Belleville',
-    arrondissement: '20th',
     material: 'Wood',
-    color: 'Multicolor',
+    color: 'Green',
     style: 'Vintage',
-    ornamentation: ['Stained Glass', 'Flowers'],
+    arrondissement: '20th',
+    ornamentations: ['Flowers', 'Ironwork'],
     description: 'Authentic vintage door from the popular Belleville district, witness to the working-class history of the 20th arrondissement.',
     isFavorite: false,
     addedBy: 'preset'

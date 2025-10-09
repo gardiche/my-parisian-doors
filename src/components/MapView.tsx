@@ -2,14 +2,40 @@ import React, { useEffect, useRef } from 'react';
 import { Door, DoorMaterial, DoorColor, DoorStyle, DoorArrondissement, DoorOrnamentation } from '@/types/door';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MapPin, Heart, Navigation, ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
+import { MapPin, Navigation, ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
 import { SearchFilter } from '@/components/SearchFilter';
 import { cn } from '@/lib/utils';
+
+// Get color hex value from door color name
+const getDoorColorHex = (color: string): string => {
+  const colorMap: Record<string, string> = {
+    'Green': '#2d5016',
+    'Blue': '#1e3a5f',
+    'Black': '#1a1a1a',
+    'White': '#f5f5f5',
+    'Cream': '#f5e6d3',
+    'Brown': '#4a2511',
+    'Red': '#8b1e1e',
+    'Gray': '#6b7280'
+  };
+  return colorMap[color] || '#4a2511';
+};
+
+// Generate Parisian door icon using uploaded SVG files
+const generateParisianDoorIcon = (doorColor: string): string => {
+  // Map door colors to lowercase for filename
+  const colorFileName = doorColor.toLowerCase().replace('/', '-');
+  
+  return `
+    <div class="w-8 h-10 flex items-center justify-center">
+      <img src="/door-${colorFileName}.svg" alt="${doorColor} door" style="width: 24px; height: 32px;" />
+    </div>
+  `;
+};
 
 interface MapViewProps {
   doors: Door[];
   onDoorClick: (door: Door) => void;
-  // Filter props
   searchTerm: string;
   onSearchChange: (value: string) => void;
   selectedMaterials: DoorMaterial[];
@@ -25,25 +51,6 @@ interface MapViewProps {
   onClearFilters: () => void;
 }
 
-interface LeafletMap {
-  setView: (center: [number, number], zoom: number) => LeafletMap;
-  on: (event: string, callback: (e: any) => void) => void;
-  remove: () => void;
-  zoomIn: () => void;
-  zoomOut: () => void;
-  flyTo: (coords: [number, number], zoom?: number) => void;
-  addLayer: (layer: any) => LeafletMap;
-}
-
-interface LeafletMarker {
-  addTo: (map: any) => LeafletMarker;
-  bindPopup: (content: string | HTMLElement) => LeafletMarker;
-  on: (event: string, callback: () => void) => void;
-  remove: () => void;
-  setLatLng: (coords: [number, number]) => void;
-}
-
-// Paris neighborhoods coordinates (approximate centers)
 const PARIS_NEIGHBORHOODS = {
   "Montmartre": [48.8867, 2.3431] as [number, number],
   "Le Marais": [48.8566, 2.3622] as [number, number],
@@ -57,11 +64,9 @@ const PARIS_NEIGHBORHOODS = {
   "Belleville": [48.8719, 2.3776] as [number, number]
 };
 
-// Mock coordinates for doors (in real app, these would come from your database)
 const getDoorCoordinates = (door: Door): [number, number] => {
   const baseCoords = PARIS_NEIGHBORHOODS[door.neighborhood as keyof typeof PARIS_NEIGHBORHOODS] || [48.8566, 2.3522];
-  // Add small random offset to spread doors within neighborhood
-  const offset = 0.003; // ~300m radius
+  const offset = 0.003;
   const lat = baseCoords[0] + (Math.random() - 0.5) * offset;
   const lng = baseCoords[1] + (Math.random() - 0.5) * offset;
   return [lat, lng];
@@ -94,19 +99,14 @@ export function MapView({
   const [isLocating, setIsLocating] = React.useState(false);
   const [showFilters, setShowFilters] = React.useState(false);
 
-  // Initialize map
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
     const initializeMap = async () => {
       try {
-        // Dynamically import Leaflet
         const L = await import('leaflet');
-        
-        // Import CSS
         await import('leaflet/dist/leaflet.css');
 
-        // Fix default markers (Leaflet issue with Webpack)
         delete (L.Icon.Default.prototype as any)._getIconUrl;
         L.Icon.Default.mergeOptions({
           iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -114,26 +114,6 @@ export function MapView({
           shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
         });
 
-        // Create custom door icon
-        const doorIcon = L.divIcon({
-          className: 'custom-door-marker',
-          html: `
-            <div class="w-6 h-6 bg-gradient-to-br from-haussmann to-sage rounded-lg flex items-center justify-center shadow-parisian border-2 border-cream">
-              <svg class="w-3 h-4" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="6" y="2" width="12" height="22" rx="2" fill="white" fill-opacity="0.9"/>
-                <rect x="8" y="4" width="8" height="8" rx="1" fill="none" stroke="white" stroke-width="1.5"/>
-                <rect x="8" y="16" width="8" height="6" rx="1" fill="none" stroke="white" stroke-width="1.5"/>
-                <circle cx="15" cy="14" r="1" fill="white"/>
-                <rect x="6" y="2" width="12" height="2" rx="2" fill="white" fill-opacity="0.7"/>
-              </svg>
-            </div>
-          `,
-          iconSize: [40, 40],
-          iconAnchor: [20, 40],
-          popupAnchor: [0, -40]
-        });
-
-        // Create user location icon
         const userIcon = L.divIcon({
           className: 'custom-user-marker',
           html: `
@@ -146,25 +126,30 @@ export function MapView({
           iconAnchor: [12, 12]
         });
 
-        // Initialize map
         const map = L.map(mapRef.current, {
           zoomControl: false,
           attributionControl: false
         }).setView([48.8566, 2.3522], 12);
 
-        // Add tiles
         L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap contributors',
           maxZoom: 19
         }).addTo(map);
 
-        // Add doors as markers
         const markers: any[] = [];
         doors.forEach((door) => {
           const coords = getDoorCoordinates(door);
+          
+          const doorIcon = L.divIcon({
+            className: 'custom-door-marker',
+            html: generateParisianDoorIcon(door.color),
+            iconSize: [30, 36],
+            iconAnchor: [18, 42],
+            popupAnchor: [0, -32]
+          });
+          
           const marker = L.marker(coords, { icon: doorIcon }).addTo(map);
           
-          // Create popup content
           const popupContent = document.createElement('div');
           popupContent.className = 'door-popup p-0 min-w-[200px]';
           popupContent.innerHTML = `
@@ -204,7 +189,6 @@ export function MapView({
         markersRef.current = markers;
         setMapReady(true);
 
-        // Request user location
         requestUserLocation(L, map, userIcon);
 
       } catch (error) {
@@ -226,7 +210,6 @@ export function MapView({
     };
   }, [doors, onDoorClick]);
 
-  // Request user location
   const requestUserLocation = async (L: any, map: any, userIcon: any) => {
     if (!navigator.geolocation) return;
 
@@ -255,7 +238,7 @@ export function MapView({
         <div class="text-center p-2">
           <div class="flex items-center justify-center gap-2 mb-2">
             <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
-            <span class="font-semibold text-sm">Votre position</span>
+            <span class="font-semibold text-sm">Your position</span>
           </div>
           <p class="text-xs text-gray-600">Latitude: ${latitude.toFixed(6)}</p>
           <p class="text-xs text-gray-600">Longitude: ${longitude.toFixed(6)}</p>
@@ -319,10 +302,8 @@ export function MapView({
 
   return (
     <div className="relative h-screen bg-background">
-      {/* Map Container */}
       <div ref={mapRef} className="absolute inset-0 z-0" />
       
-      {/* Custom CSS for map styling */}
       <style>{`
         .custom-popup .leaflet-popup-content-wrapper {
           border-radius: 0.75rem;
@@ -343,7 +324,6 @@ export function MapView({
         }
       `}</style>
 
-      {/* Search & Filters - Collapsible */}
       <div className="absolute top-4 left-4 right-4 z-10">
         <Card className="p-3 bg-background/95 backdrop-blur-lg">
           <div className="flex items-center justify-between mb-2">
@@ -381,7 +361,6 @@ export function MapView({
             </div>
           )}
 
-          {/* Quick Navigation */}
           {!showFilters && (
             <div className="flex flex-wrap gap-2 mt-2">
               <Button
@@ -408,7 +387,6 @@ export function MapView({
         </Card>
       </div>
 
-      {/* Map Controls */}
       <div className="absolute bottom-24 right-4 z-10 flex flex-col gap-2">
         <Button
           size="sm"
@@ -416,7 +394,7 @@ export function MapView({
           onClick={centerOnUser}
           disabled={isLocating}
           className="w-10 h-10 p-0 bg-background/95 backdrop-blur-lg"
-          title="Ma position"
+          title="My position"
         >
           {isLocating ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -442,7 +420,6 @@ export function MapView({
         </Button>
       </div>
 
-      {/* Door Count */}
       <Card className="absolute bottom-24 left-4 z-10 px-3 py-2 bg-background/95 backdrop-blur-lg">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
@@ -452,7 +429,6 @@ export function MapView({
         </div>
       </Card>
 
-      {/* Loading State */}
       {!mapReady && (
         <div className="absolute inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-center justify-center">
           <Card className="p-6 text-center">
