@@ -30,7 +30,28 @@ interface SearchFilterProps {
 const materials: DoorMaterial[] = ['Wood', 'Metal', 'Glass', 'Stone', 'Composite'];
 const colors: DoorColor[] = ['Green', 'Blue', 'Black', 'White', 'Cream', 'Brown', 'Red', 'Gray'];
 const styles: DoorStyle[] = ['Haussmann', 'Art Nouveau', 'Modern', 'Vintage', 'Industrial', 'Classic'];
-const arrondissements: DoorArrondissement[] = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th', '11th', '12th', '13th', '14th', '15th', '16th', '17th', '18th', '19th', '20th'];
+const arrondissements: DoorArrondissement[] = [
+  '1st — Louvre',
+  '2nd — Bourse',
+  '3rd — Le Marais (Temple)',
+  '4th — Hôtel-de-Ville (Le Marais, Île Saint-Louis)',
+  '5th — Panthéon (Quartier Latin)',
+  '6th — Luxembourg (Saint-Germain-des-Prés)',
+  '7th — Palais-Bourbon (Tour Eiffel, Invalides)',
+  '8th — Élysée (Champs-Élysées, Madeleine)',
+  '9th — Opéra (Pigalle Sud)',
+  '10th — Entrepôt (Canal Saint-Martin)',
+  '11th — Popincourt (Oberkampf, Bastille)',
+  '12th — Reuilly (Bercy, Daumesnil)',
+  '13th — Gobelins (Butte-aux-Cailles, Chinatown)',
+  '14th — Observatoire (Montparnasse)',
+  '15th — Vaugirard',
+  '16th — Passy (Trocadéro, Auteuil)',
+  '17th — Batignolles-Monceau',
+  '18th — Montmartre (Butte-Montmartre)',
+  '19th — Buttes-Chaumont (La Villette)',
+  '20th — Ménilmontant (Belleville, Père-Lachaise)'
+];
 const ornamentations: DoorOrnamentation[] = ['Ironwork', 'Stained Glass', 'Wood Carving', 'Columns', 'Pediment', 'Door Knocker', 'Moldings', 'Flowers'];
 
 export function SearchFilter({

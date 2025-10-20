@@ -387,7 +387,7 @@ export function MapView({
         </Card>
       </div>
 
-      <div className="absolute bottom-24 right-4 z-10 flex flex-col gap-2">
+      <div className="absolute bottom-36 left-4 z-10 flex flex-col gap-2">
         <Button
           size="sm"
           variant="secondary"
@@ -420,7 +420,7 @@ export function MapView({
         </Button>
       </div>
 
-      <Card className="absolute bottom-24 left-4 z-10 px-3 py-2 bg-background/95 backdrop-blur-lg">
+      <Card className="absolute bottom-36 left-16 z-10 px-3 py-2 bg-background/95 backdrop-blur-lg">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
           <span className="text-sm font-medium">

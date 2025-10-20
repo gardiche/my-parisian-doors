@@ -3,8 +3,38 @@
 export type DoorMaterial = 'Wood' | 'Metal' | 'Glass' | 'Stone' | 'Composite';
 export type DoorColor = 'Green' | 'Blue' | 'Black' | 'White' | 'Cream' | 'Brown' | 'Red' | 'Gray';
 export type DoorStyle = 'Haussmann' | 'Art Nouveau' | 'Modern' | 'Vintage' | 'Industrial' | 'Classic';
-export type DoorArrondissement = '1st' | '2nd' | '3rd' | '4th' | '5th' | '6th' | '7th' | '8th' | '9th' | '10th' | '11th' | '12th' | '13th' | '14th' | '15th' | '16th' | '17th' | '18th' | '19th' | '20th';
+export type DoorArrondissement = 
+  | '1st — Louvre'
+  | '2nd — Bourse'
+  | '3rd — Le Marais (Temple)'
+  | '4th — Hôtel-de-Ville (Le Marais, Île Saint-Louis)'
+  | '5th — Panthéon (Quartier Latin)'
+  | '6th — Luxembourg (Saint-Germain-des-Prés)'
+  | '7th — Palais-Bourbon (Tour Eiffel, Invalides)'
+  | '8th — Élysée (Champs-Élysées, Madeleine)'
+  | '9th — Opéra (Pigalle Sud)'
+  | '10th — Entrepôt (Canal Saint-Martin)'
+  | '11th — Popincourt (Oberkampf, Bastille)'
+  | '12th — Reuilly (Bercy, Daumesnil)'
+  | '13th — Gobelins (Butte-aux-Cailles, Chinatown)'
+  | '14th — Observatoire (Montparnasse)'
+  | '15th — Vaugirard'
+  | '16th — Passy (Trocadéro, Auteuil)'
+  | '17th — Batignolles-Monceau'
+  | '18th — Montmartre (Butte-Montmartre)'
+  | '19th — Buttes-Chaumont (La Villette)'
+  | '20th — Ménilmontant (Belleville, Père-Lachaise)';
+
 export type DoorOrnamentation = 'Ironwork' | 'Stained Glass' | 'Wood Carving' | 'Columns' | 'Pediment' | 'Door Knocker' | 'Moldings' | 'Flowers';
+
+// Helper to get postal code from arrondissement
+export const getPostalCodeFromArrondissement = (arrondissement: DoorArrondissement): string => {
+  const match = arrondissement.match(/^(\d+)/);
+  if (!match) return '75001';
+  
+  const num = parseInt(match[1]);
+  return `75${num.toString().padStart(3, '0')}`;
+};
 
 export interface Door {
   id: string;
@@ -18,10 +48,8 @@ export interface Door {
   ornamentations?: DoorOrnamentation[];
   description?: string;
   isFavorite: boolean;
-  // Timeline fields
-  dateAdded?: string; // ISO date string
-  addedBy?: 'user' | 'preset'; // Track if user-generated or sample data
-  // Optional coordinates for precise mapping
+  dateAdded?: string;
+  addedBy?: 'user' | 'preset';
   coordinates?: {
     lat: number;
     lng: number;
@@ -47,7 +75,7 @@ export const sampleDoors: Door[] = [
     material: 'Wood',
     color: 'Green',
     style: 'Haussmann',
-    arrondissement: '4th',
+    arrondissement: '4th — Hôtel-de-Ville (Le Marais, Île Saint-Louis)',
     ornamentations: ['Wood Carving', 'Door Knocker'],
     description: 'A magnificent Haussmannian door with complex carved details and a green patina characteristic of the Marais district.',
     isFavorite: false,
@@ -61,7 +89,7 @@ export const sampleDoors: Door[] = [
     material: 'Wood',
     color: 'Blue',
     style: 'Art Nouveau',
-    arrondissement: '18th',
+    arrondissement: '18th — Montmartre (Butte-Montmartre)',
     ornamentations: ['Stained Glass', 'Ironwork'],
     description: 'Art Nouveau door with delicate floral motifs, typical of early 20th century Montmartre architecture.',
     isFavorite: true,
@@ -75,7 +103,7 @@ export const sampleDoors: Door[] = [
     material: 'Metal',
     color: 'Black',
     style: 'Modern',
-    arrondissement: '6th',
+    arrondissement: '6th — Luxembourg (Saint-Germain-des-Prés)',
     ornamentations: [],
     description: 'Contemporary minimalist design with bold geometric lines, perfectly integrated into the Parisian urban landscape.',
     isFavorite: false,
@@ -89,7 +117,7 @@ export const sampleDoors: Door[] = [
     material: 'Glass',
     color: 'White',
     style: 'Modern',
-    arrondissement: '8th',
+    arrondissement: '8th — Élysée (Champs-Élysées, Madeleine)',
     ornamentations: ['Columns'],
     description: 'Luxurious entrance to a prestigious boutique with frosted glass and golden accents.',
     isFavorite: false,
@@ -103,7 +131,7 @@ export const sampleDoors: Door[] = [
     material: 'Wood',
     color: 'Brown',
     style: 'Vintage',
-    arrondissement: '5th',
+    arrondissement: '5th — Panthéon (Quartier Latin)',
     ornamentations: ['Door Knocker', 'Moldings'],
     description: 'Ancient door with a rich history, preserved in its original state with authentic hardware.',
     isFavorite: true,
@@ -117,7 +145,7 @@ export const sampleDoors: Door[] = [
     material: 'Stone',
     color: 'Cream',
     style: 'Classic',
-    arrondissement: '16th',
+    arrondissement: '16th — Passy (Trocadéro, Auteuil)',
     ornamentations: ['Columns', 'Pediment'],
     description: 'Majestic dressed stone entrance with ornamental sculptures typical of French classical architecture.',
     isFavorite: false,
@@ -131,7 +159,7 @@ export const sampleDoors: Door[] = [
     material: 'Metal',
     color: 'Red',
     style: 'Industrial',
-    arrondissement: '11th',
+    arrondissement: '11th — Popincourt (Oberkampf, Bastille)',
     ornamentations: ['Ironwork'],
     description: 'Modern industrial style with raw metallic elements and vibrant red color.',
     isFavorite: false,
@@ -145,7 +173,7 @@ export const sampleDoors: Door[] = [
     material: 'Wood',
     color: 'Black',
     style: 'Haussmann',
-    arrondissement: '9th',
+    arrondissement: '9th — Opéra (Pigalle Sud)',
     ornamentations: ['Wood Carving', 'Moldings'],
     description: 'Carefully restored Haussmannian door, maintaining its original elegance while integrating contemporary elements.',
     isFavorite: true,
@@ -159,7 +187,7 @@ export const sampleDoors: Door[] = [
     material: 'Composite',
     color: 'Gray',
     style: 'Modern',
-    arrondissement: '18th',
+    arrondissement: '18th — Montmartre (Butte-Montmartre)',
     ornamentations: [],
     description: 'Avant-garde design using composite materials with a sophisticated matte finish.',
     isFavorite: false,
@@ -173,7 +201,7 @@ export const sampleDoors: Door[] = [
     material: 'Wood',
     color: 'Green',
     style: 'Vintage',
-    arrondissement: '20th',
+    arrondissement: '20th — Ménilmontant (Belleville, Père-Lachaise)',
     ornamentations: ['Flowers', 'Ironwork'],
     description: 'Authentic vintage door from the popular Belleville district, witness to the working-class history of the 20th arrondissement.',
     isFavorite: false,

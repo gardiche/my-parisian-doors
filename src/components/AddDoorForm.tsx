@@ -1,12 +1,11 @@
 // src/components/AddDoorForm.tsx
 import React, { useState, useRef } from 'react';
-import { Door, DoorMaterial, DoorColor, DoorStyle } from '@/types/door';
+import { Door, DoorMaterial, DoorColor, DoorStyle, DoorArrondissement, DoorOrnamentation } from '@/types/door';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { 
   Dialog, 
   DialogContent, 
@@ -23,7 +22,6 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface AddDoorFormProps {
   isOpen: boolean;
@@ -34,19 +32,52 @@ interface AddDoorFormProps {
 const materials: DoorMaterial[] = ['Wood', 'Metal', 'Glass', 'Stone', 'Composite'];
 const colors: DoorColor[] = ['Green', 'Blue', 'Black', 'White', 'Cream', 'Brown', 'Red', 'Gray'];
 const styles: DoorStyle[] = ['Haussmann', 'Art Nouveau', 'Modern', 'Vintage', 'Industrial', 'Classic'];
+const arrondissements: DoorArrondissement[] = [
+  '1st — Louvre',
+  '2nd — Bourse',
+  '3rd — Le Marais (Temple)',
+  '4th — Hôtel-de-Ville (Le Marais, Île Saint-Louis)',
+  '5th — Panthéon (Quartier Latin)',
+  '6th — Luxembourg (Saint-Germain-des-Prés)',
+  '7th — Palais-Bourbon (Tour Eiffel, Invalides)',
+  '8th — Élysée (Champs-Élysées, Madeleine)',
+  '9th — Opéra (Pigalle Sud)',
+  '10th — Entrepôt (Canal Saint-Martin)',
+  '11th — Popincourt (Oberkampf, Bastille)',
+  '12th — Reuilly (Bercy, Daumesnil)',
+  '13th — Gobelins (Butte-aux-Cailles, Chinatown)',
+  '14th — Observatoire (Montparnasse)',
+  '15th — Vaugirard',
+  '16th — Passy (Trocadéro, Auteuil)',
+  '17th — Batignolles-Monceau',
+  '18th — Montmartre (Butte-Montmartre)',
+  '19th — Buttes-Chaumont (La Villette)',
+  '20th — Ménilmontant (Belleville, Père-Lachaise)'
+];
+
+// Helper to detect arrondissement from postal code
+const getArrondissementFromPostalCode = (postalCode: string): DoorArrondissement | null => {
+  const match = postalCode.match(/750(\d{2})/);
+  if (!match) return null;
+  
+  const num = parseInt(match[1]);
+  if (num < 1 || num > 20) return null;
+  
+  const ordinal = num === 1 ? '1st' : num === 2 ? '2nd' : num === 3 ? '3rd' : `${num}th`;
+  return arrondissements.find(arr => arr.startsWith(ordinal)) || null;
+};
 
 export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
-  // Form state
   const [formData, setFormData] = useState({
     location: '',
     neighborhood: '',
     material: '' as DoorMaterial,
     color: '' as DoorColor,
     style: '' as DoorStyle,
+    arrondissement: '' as DoorArrondissement,
     description: ''
   });
 
-  // Image and location state
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [isCompressing, setIsCompressing] = useState(false);
@@ -57,11 +88,9 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
   const [gpsCoordinates, setGpsCoordinates] = useState<{lat: number, lng: number} | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset form
   const resetForm = () => {
     setFormData({
       location: '',
@@ -69,6 +98,7 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
       material: '' as DoorMaterial,
       color: '' as DoorColor,
       style: '' as DoorStyle,
+      arrondissement: '' as DoorArrondissement,
       description: ''
     });
     setImageFile(null);
@@ -79,7 +109,6 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
     setGpsCoordinates(null);
   };
 
-  // Handle image selection with compression
   const compressImage = (file: File): Promise<string> => {
     return new Promise((resolve) => {
       const canvas = document.createElement('canvas');
@@ -87,7 +116,6 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
       const img = new Image();
       
       img.onload = () => {
-        // Calculate new dimensions (max 800px width, maintain aspect ratio)
         const maxWidth = 800;
         const maxHeight = 800;
         let { width, height } = img;
@@ -104,19 +132,14 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
           }
         }
         
-        // Set canvas dimensions
         canvas.width = width;
         canvas.height = height;
-        
-        // Draw and compress
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Convert to base64 with compression (0.8 = 80% quality)
         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
         resolve(compressedDataUrl);
       };
       
-      // Create object URL for the image
       img.src = URL.createObjectURL(file);
     });
   };
@@ -128,11 +151,7 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
       
       try {
         const originalSize = file.size;
-        
-        // Compress image and create preview
         const compressedImage = await compressImage(file);
-        
-        // Calculate compressed size (rough estimation from base64)
         const compressedSize = Math.round((compressedImage.length * 3) / 4);
         
         setImagePreview(compressedImage);
@@ -143,7 +162,6 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
         
       } catch (error) {
         console.error('Error compressing image:', error);
-        // Fallback to original file
         const reader = new FileReader();
         reader.onload = (e) => {
           setImagePreview(e.target?.result as string);
@@ -155,7 +173,6 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
     }
   };
 
-  // Handle file input change
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -163,7 +180,6 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
     }
   };
 
-  // Get current location with improved geocoding
   const getCurrentLocation = async () => {
     if (!navigator.geolocation) {
       setLocationError('Geolocation not supported by your device');
@@ -184,11 +200,8 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
       });
 
       const { latitude, longitude } = position.coords;
-      
-      // Save GPS coordinates
       setGpsCoordinates({ lat: latitude, lng: longitude });
 
-      // Reverse geocoding with Nominatim (OpenStreetMap - gratuit)
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
         {
@@ -200,36 +213,38 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
       
       if (response.ok) {
         const data = await response.json();
-        
-        // Extract address components
         const addr = data.address || {};
         const houseNumber = addr.house_number || '';
         const road = addr.road || addr.street || '';
+        const postalCode = addr.postcode || '';
         const quarter = addr.quarter || addr.suburb || addr.neighbourhood || addr.district || '';
         
-        // Build location string
         let locationStr = '';
         if (houseNumber && road) {
           locationStr = `${houseNumber} ${road}`;
         } else if (road) {
           locationStr = road;
         } else {
-          locationStr = data.display_name?.split(',')[0] || 'Adresse trouvée';
+          locationStr = data.display_name?.split(',')[0] || 'Address found';
+        }
+        
+        // Auto-detect arrondissement from postal code
+        let detectedArrondissement: DoorArrondissement | null = null;
+        if (postalCode) {
+          detectedArrondissement = getArrondissementFromPostalCode(postalCode);
         }
         
         setFormData(prev => ({
           ...prev,
           location: locationStr,
-          neighborhood: quarter || 'Paris'
+          neighborhood: quarter || 'Paris',
+          arrondissement: detectedArrondissement || prev.arrondissement
         }));
         
         setLocationSuccess(true);
-        
-        // Auto-hide success message after 3s
         setTimeout(() => setLocationSuccess(false), 3000);
         
       } else {
-        // Fallback to coordinates
         setFormData(prev => ({
           ...prev,
           location: `GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
@@ -239,13 +254,13 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
       }
     } catch (error: any) {
       if (error.code === 1) {
-        setLocationError('Autorisation GPS refusée');
+        setLocationError('GPS permission denied');
       } else if (error.code === 2) {
-        setLocationError('Position GPS indisponible');
+        setLocationError('GPS position unavailable');
       } else if (error.code === 3) {
-        setLocationError('Délai GPS dépassé');
+        setLocationError('GPS timeout exceeded');
       } else {
-        setLocationError('Erreur de géolocalisation');
+        setLocationError('Geolocation error');
       }
       console.error('Geolocation error:', error);
     } finally {
@@ -253,17 +268,15 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
     }
   };
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
     if (!imageFile) {
       alert('Please add a photo');
       return;
     }
     
-    if (!formData.location || !formData.neighborhood || !formData.material || !formData.color || !formData.style) {
+    if (!formData.location || !formData.neighborhood || !formData.material || !formData.color || !formData.style || !formData.arrondissement) {
       alert('Please fill in all required fields');
       return;
     }
@@ -271,10 +284,8 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
     setIsSubmitting(true);
 
     try {
-      // Use the already compressed image from preview
       const imageDataUrl = imagePreview;
 
-      // Create new door object
       const newDoor: Omit<Door, 'id'> = {
         imageUrl: imageDataUrl,
         location: formData.location,
@@ -282,6 +293,7 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
         material: formData.material,
         color: formData.color,
         style: formData.style,
+        arrondissement: formData.arrondissement,
         description: formData.description,
         isFavorite: false,
         coordinates: gpsCoordinates || undefined,
@@ -302,7 +314,7 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
   };
 
   const isFormValid = imageFile && formData.location && formData.neighborhood && 
-                     formData.material && formData.color && formData.style;
+                     formData.material && formData.color && formData.style && formData.arrondissement;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -343,7 +355,6 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
                   <X className="w-4 h-4" />
                 </Button>
                 
-                {/* Compression info */}
                 {compressionInfo && (
                   <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
                     {(compressionInfo.original / 1024).toFixed(0)}KB → {(compressionInfo.compressed / 1024).toFixed(0)}KB
@@ -385,7 +396,6 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
               </div>
             )}
             
-            {/* Hidden file inputs */}
             <input
               ref={cameraInputRef}
               type="file"
@@ -436,7 +446,7 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
               {locationSuccess && (
                 <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded">
                   <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>Position captured! Check and add door number if needed.</span>
+                  <span>Position captured! Verify the information below.</span>
                 </div>
               )}
               
@@ -453,13 +463,35 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
                     required
                   />
                 </div>
+                
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Neighborhood *</label>
+                  <label className="text-sm font-medium mb-1 block">Arrondissement *</label>
+                  <Select
+                    value={formData.arrondissement}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, arrondissement: value as DoorArrondissement }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select arrondissement" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {arrondissements.map(arr => (
+                        <SelectItem key={arr} value={arr}>
+                          {arr}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium mb-1 block">
+                    Neighborhood
+                    <span className="text-xs text-muted-foreground ml-1">(optional)</span>
+                  </label>
                   <Input
                     placeholder="e.g.: Le Marais"
                     value={formData.neighborhood}
                     onChange={(e) => setFormData(prev => ({ ...prev, neighborhood: e.target.value }))}
-                    required
                   />
                 </div>
               </div>

@@ -377,12 +377,6 @@ const Index = () => {
                         <div className="text-lg font-semibold text-rose-600">{favoriteDoors.length}</div>
                         <div className="text-xs text-gray-500">Favorites</div>
                       </div>
-                      <div>
-                        <div className="text-lg font-semibold text-amber-600">
-                          {new Set(doors.map(d => d.neighborhood)).size}
-                        </div>
-                        <div className="text-xs text-gray-500">Areas</div>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -563,7 +557,7 @@ const Index = () => {
             <rect x="8" y="16" width="8" height="6" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5"/>
             <circle cx="15" cy="14" r="1" fill="currentColor"/>
           </svg>
-          <div className="absolute -top-0.5 -right-0.5 bg-ochre text-night rounded-full w-3.5 h-3.5 flex items-center justify-center">
+          <div className="absolute -top-1.5 -right-1.5 bg-ochre text-night rounded-full w-3.5 h-3.5 flex items-center justify-center">
             <Plus className="w-2.5 h-2.5" />
           </div>
         </div>
