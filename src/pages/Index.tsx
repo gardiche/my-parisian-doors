@@ -8,6 +8,7 @@ import { Navigation } from '@/components/Navigation';
 import { SearchFilter } from '@/components/SearchFilter';
 import { AddDoorForm } from '@/components/AddDoorForm';
 import { AdminPanel } from '@/components/AdminPanel';
+import { SplashScreen } from '@/components/SplashScreen';
 import { Heart, Plus, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -186,6 +187,11 @@ const Index = () => {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => {
+    // Check if user has seen splash screen before
+    const hasSeenSplash = localStorage.getItem('hasSeenSplash');
+    return !hasSeenSplash;
+  });
 
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -205,6 +211,12 @@ const Index = () => {
     const fetchedDoors = await fetchAllDoors();
     setDoors(fetchedDoors);
     setIsLoading(false);
+  };
+
+  // Handle splash screen finish
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+    localStorage.setItem('hasSeenSplash', 'true');
   };
 
   // Handle scroll
@@ -554,8 +566,10 @@ const Index = () => {
 
   return (
     <>
+      {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
+
       {renderContent()}
-      
+
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
       
       <Button
