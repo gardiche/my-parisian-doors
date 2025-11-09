@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Lottie from 'lottie-react';
 import splashAnimation from '@/assets/animations/splash-screen.json';
 
@@ -9,15 +9,13 @@ interface SplashScreenProps {
 export function SplashScreen({ onFinish }: SplashScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
 
-  useEffect(() => {
-    // Duration of splash screen (adjust as needed)
-    const timer = setTimeout(() => {
+  const handleAnimationComplete = () => {
+    // Wait a moment before fading out
+    setTimeout(() => {
       setIsVisible(false);
       setTimeout(onFinish, 300); // Wait for fade out animation
-    }, 3000); // 3 seconds
-
-    return () => clearTimeout(timer);
-  }, [onFinish]);
+    }, 500);
+  };
 
   if (!isVisible) {
     return null;
@@ -25,15 +23,17 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-background transition-opacity duration-300 ${
+      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-background transition-opacity duration-300 ${
         isVisible ? 'opacity-100' : 'opacity-0'
       }`}
     >
-      <div className="w-full max-w-md px-8">
+      <div className="w-full h-full">
         <Lottie
           animationData={splashAnimation}
           loop={false}
           autoplay={true}
+          onComplete={handleAnimationComplete}
+          style={{ width: '100%', height: '100%' }}
         />
       </div>
     </div>

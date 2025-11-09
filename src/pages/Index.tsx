@@ -568,49 +568,57 @@ const Index = () => {
     <>
       {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
 
-      {renderContent()}
+      {!showSplash && (
+        <>
+          {renderContent()}
 
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-      
-      <Button
-        onClick={() => setIsAddDoorOpen(true)}
-        className="fixed bottom-24 right-4 w-16 h-16 rounded-lg shadow-parisian-xl bg-haussmann text-cream hover:bg-haussmann/90 hover:shadow-parisian-xl transition-all duration-300 z-40 border-2 border-cream/20"
-        size="lg"
-      >
-        <div className="relative flex items-center justify-center">
-          <svg className="w-6 h-7" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="6" y="2" width="12" height="22" rx="2" fill="currentColor" fillOpacity="0.8"/>
-            <rect x="8" y="4" width="8" height="8" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-            <rect x="8" y="16" width="8" height="6" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-            <circle cx="15" cy="14" r="1" fill="currentColor"/>
-          </svg>
-          <div className="absolute -top-1.5 -right-1.5 bg-ochre text-night rounded-full w-3.5 h-3.5 flex items-center justify-center">
-            <Plus className="w-2.5 h-2.5" />
-          </div>
-        </div>
-      </Button>
+          <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <AddDoorForm
-        isOpen={isAddDoorOpen}
-        onClose={() => setIsAddDoorOpen(false)}
-        onAddDoor={handleAddDoor}
-      />
+          <Button
+            onClick={() => setIsAddDoorOpen(true)}
+            className="fixed bottom-24 right-4 w-16 h-16 rounded-lg shadow-parisian-xl bg-haussmann text-cream hover:bg-haussmann/90 hover:shadow-parisian-xl transition-all duration-300 z-40 border-2 border-cream/20"
+            size="lg"
+          >
+            <div className="relative flex items-center justify-center">
+              <svg className="w-6 h-7" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="6" y="2" width="12" height="22" rx="2" fill="currentColor" fillOpacity="0.8"/>
+                <rect x="8" y="4" width="8" height="8" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+                <rect x="8" y="16" width="8" height="6" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+                <circle cx="15" cy="14" r="1" fill="currentColor"/>
+              </svg>
+              <div className="absolute -top-1.5 -right-1.5 bg-ochre text-night rounded-full w-3.5 h-3.5 flex items-center justify-center">
+                <Plus className="w-2.5 h-2.5" />
+              </div>
+            </div>
+          </Button>
+        </>
+      )}
 
-      <AdminPanel
-        isOpen={isAdminOpen}
-        onClose={() => setIsAdminOpen(false)}
-      />
+      {!showSplash && (
+        <>
+          <AddDoorForm
+            isOpen={isAddDoorOpen}
+            onClose={() => setIsAddDoorOpen(false)}
+            onAddDoor={handleAddDoor}
+          />
 
-      {/* Admin button - top left corner */}
-      <Button
-        onClick={() => setIsAdminOpen(true)}
-        variant="ghost"
-        size="sm"
-        className="fixed top-4 right-4 z-40 opacity-30 hover:opacity-100 transition-opacity"
-        title="Admin Panel"
-      >
-        <Settings className="w-4 h-4" />
-      </Button>
+          <AdminPanel
+            isOpen={isAdminOpen}
+            onClose={() => setIsAdminOpen(false)}
+          />
+
+          {/* Admin button - top left corner */}
+          <Button
+            onClick={() => setIsAdminOpen(true)}
+            variant="ghost"
+            size="sm"
+            className="fixed top-4 right-4 z-40 opacity-30 hover:opacity-100 transition-opacity"
+            title="Admin Panel"
+          >
+            <Settings className="w-4 h-4" />
+          </Button>
+        </>
+      )}
     </>
   );
 };
