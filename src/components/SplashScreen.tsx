@@ -23,19 +23,30 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-background transition-opacity duration-300 ${
+      className={`fixed inset-0 z-[9999] bg-background transition-opacity duration-300 m-0 p-0 ${
         isVisible ? 'opacity-100' : 'opacity-0'
       }`}
+      style={{
+        margin: 0,
+        padding: 0,
+        width: '100vw',
+        height: '100vh',
+        overflow: 'hidden'
+      }}
     >
-      <div className="w-full h-full">
-        <Lottie
-          animationData={splashAnimation}
-          loop={false}
-          autoplay={true}
-          onComplete={handleAnimationComplete}
-          style={{ width: '100%', height: '100%' }}
-        />
-      </div>
+      <Lottie
+        animationData={splashAnimation}
+        loop={false}
+        autoplay={true}
+        onComplete={handleAnimationComplete}
+        style={{
+          width: '100%',
+          height: '100%',
+          margin: 0,
+          padding: 0,
+          display: 'block'
+        }}
+      />
     </div>
   );
 }
