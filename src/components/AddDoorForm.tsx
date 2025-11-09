@@ -1,5 +1,5 @@
 // src/components/AddDoorForm.tsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Door, DoorMaterial, DoorColor, DoorStyle, DoorArrondissement, DoorOrnamentation } from '@/types/door';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,9 +23,11 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
-  ChevronDown
+  ChevronDown,
+  AlertTriangle
 } from 'lucide-react';
 import { getLocationInfo } from '@/lib/location';
+import { supabase } from '@/lib/supabase';
 
 interface AddDoorFormProps {
   isOpen: boolean;
@@ -36,7 +38,7 @@ interface AddDoorFormProps {
 const materials: DoorMaterial[] = ['Wood', 'Metal', 'Glass', 'Stone', 'Composite'];
 const colors: DoorColor[] = ['Green', 'Blue', 'Black', 'White', 'Cream', 'Brown', 'Red', 'Gray'];
 const styles: DoorStyle[] = ['Haussmann', 'Art Nouveau', 'Modern', 'Vintage', 'Industrial', 'Classic'];
-const ornamentations: DoorOrnamentation[] = ['Ironwork', 'Stained Glass', 'Wood Carving', 'Columns', 'Pediment', 'Door Knocker', 'Moldings', 'Flowers'];
+const ornamentations: DoorOrnamentation[] = ['Ironwork', 'Stained Glass', 'Wood Carving', 'Columns', 'Pediment', 'Door Knocker', 'Moldings', 'Flowers', 'Golden Details'];
 const arrondissements: DoorArrondissement[] = [
   '1st — Louvre',
   '2nd — Bourse',
@@ -93,6 +95,8 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
   const [locationSuccess, setLocationSuccess] = useState(false);
   const [gpsCoordinates, setGpsCoordinates] = useState<{lat: number, lng: number} | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState('');
+  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -114,7 +118,54 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
     setLocationError('');
     setLocationSuccess(false);
     setGpsCoordinates(null);
+    setDuplicateWarning('');
   };
+
+  // Check if door already exists at this address
+  const checkForDuplicate = async (location: string, arrondissement: string) => {
+    if (!location || !arrondissement) {
+      setDuplicateWarning('');
+      return;
+    }
+
+    setIsCheckingDuplicate(true);
+
+    try {
+      // Normalize the address for comparison
+      const normalizedLocation = location.trim().toLowerCase();
+
+      // Query Supabase for existing doors at this address
+      const { data, error } = await supabase
+        .from('doors')
+        .select('id, location, neighborhood')
+        .eq('arrondissement', arrondissement)
+        .ilike('location', normalizedLocation);
+
+      if (error) {
+        console.error('Error checking for duplicates:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        setDuplicateWarning(`A door at this address already exists in ${data[0].neighborhood}`);
+      } else {
+        setDuplicateWarning('');
+      }
+    } catch (error) {
+      console.error('Error checking duplicates:', error);
+    } finally {
+      setIsCheckingDuplicate(false);
+    }
+  };
+
+  // Check for duplicates when location or arrondissement changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      checkForDuplicate(formData.location, formData.arrondissement);
+    }, 500); // Debounce to avoid too many requests
+
+    return () => clearTimeout(timer);
+  }, [formData.location, formData.arrondissement]);
 
   const compressImage = (file: File): Promise<string> => {
     return new Promise((resolve) => {
@@ -582,7 +633,15 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
                   </Select>
                 </div>
               </div>
-              
+
+              {/* Duplicate Warning */}
+              {duplicateWarning && (
+                <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 p-2 rounded border border-orange-200">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <span>{duplicateWarning}</span>
+                </div>
+              )}
+
               {gpsCoordinates && (
                 <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
                   GPS: {gpsCoordinates.lat.toFixed(6)}, {gpsCoordinates.lng.toFixed(6)}

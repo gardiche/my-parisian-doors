@@ -10,11 +10,9 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
 
   const handleAnimationComplete = () => {
-    // Wait a moment before fading out
-    setTimeout(() => {
-      setIsVisible(false);
-      setTimeout(onFinish, 300); // Wait for fade out animation
-    }, 500);
+    // Immediately start fade out when animation completes
+    setIsVisible(false);
+    setTimeout(onFinish, 300); // Wait for fade out animation
   };
 
   if (!isVisible) {

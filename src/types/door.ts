@@ -25,7 +25,7 @@ export type DoorArrondissement =
   | '19th — Buttes-Chaumont (La Villette)'
   | '20th — Ménilmontant (Belleville, Père-Lachaise)';
 
-export type DoorOrnamentation = 'Ironwork' | 'Stained Glass' | 'Wood Carving' | 'Columns' | 'Pediment' | 'Door Knocker' | 'Moldings' | 'Flowers';
+export type DoorOrnamentation = 'Ironwork' | 'Stained Glass' | 'Wood Carving' | 'Columns' | 'Pediment' | 'Door Knocker' | 'Moldings' | 'Flowers' | 'Golden Details';
 
 // Helper to get postal code from arrondissement
 export const getPostalCodeFromArrondissement = (arrondissement: DoorArrondissement): string => {

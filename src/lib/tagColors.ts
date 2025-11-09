@@ -33,7 +33,8 @@ export const TAG_COLORS = {
     pediment: '#D2CDC5',
     doorKnocker: '#D6A77A',
     moldings: '#F1EDE6',
-    flowers: '#F3B6B2'
+    flowers: '#F3B6B2',
+    goldenDetails: '#E8C547'
   }
 } as const;
 
