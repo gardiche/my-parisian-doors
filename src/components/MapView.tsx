@@ -65,6 +65,12 @@ const PARIS_NEIGHBORHOODS = {
 };
 
 const getDoorCoordinates = (door: Door): [number, number] => {
+  // Use real GPS coordinates if available
+  if (door.coordinates && door.coordinates.lat && door.coordinates.lng) {
+    return [door.coordinates.lat, door.coordinates.lng];
+  }
+
+  // Fallback to approximate neighborhood coordinates
   const baseCoords = PARIS_NEIGHBORHOODS[door.neighborhood as keyof typeof PARIS_NEIGHBORHOODS] || [48.8566, 2.3522];
   const offset = 0.003;
   const lat = baseCoords[0] + (Math.random() - 0.5) * offset;

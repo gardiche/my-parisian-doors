@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Heart, MapPin, Palette, Hammer, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getTagColor } from '@/lib/tagColors';
 
 interface DoorDetailProps {
   door: Door;
@@ -12,6 +13,19 @@ interface DoorDetailProps {
 }
 
 export function DoorDetail({ door, onBack, onToggleFavorite }: DoorDetailProps) {
+  // Extract postal code from arrondissement (e.g., "2nd — Bourse" -> "75002")
+  const getPostalCode = (arrondissement: string): string => {
+    const match = arrondissement.match(/^(\d+)/);
+    if (match) {
+      const num = match[1].padStart(2, '0');
+      return `750${num}`;
+    }
+    return '';
+  };
+
+  const postalCode = getPostalCode(door.arrondissement);
+  const fullAddress = postalCode ? `${door.location}, ${postalCode} Paris` : door.location;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -27,11 +41,11 @@ export function DoorDetail({ door, onBack, onToggleFavorite }: DoorDetailProps) 
             onClick={() => onToggleFavorite(door.id)}
             className="gap-2"
           >
-            <Heart 
+            <Heart
               className={cn(
                 "w-4 h-4",
                 door.isFavorite ? "fill-red-500 text-red-500" : "text-muted-foreground"
-              )} 
+              )}
             />
             {door.isFavorite ? 'Favorited' : 'Favorite'}
           </Button>
@@ -58,7 +72,7 @@ export function DoorDetail({ door, onBack, onToggleFavorite }: DoorDetailProps) 
               <MapPin className="w-4 h-4" />
               <span className="text-sm font-medium">{door.neighborhood}</span>
             </div>
-            <h1 className="text-2xl font-bold text-foreground">{door.location}</h1>
+            <h1 className="text-2xl font-bold text-foreground">{fullAddress}</h1>
           </div>
 
           {/* Properties */}
@@ -73,18 +87,18 @@ export function DoorDetail({ door, onBack, onToggleFavorite }: DoorDetailProps) 
                   <Hammer className="w-4 h-4" />
                   Material
                 </div>
-                <Badge variant="outline">{door.material}</Badge>
+                <Badge customColor={getTagColor('material', door.material)}>{door.material}</Badge>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Palette className="w-4 h-4" />
                   Color
                 </div>
-                <Badge variant="outline">{door.color}</Badge>
+                <Badge customColor={getTagColor('color', door.color)}>{door.color}</Badge>
               </div>
               <div className="space-y-2 col-span-2">
                 <div className="text-sm text-muted-foreground">Style</div>
-                <Badge variant="secondary">{door.style}</Badge>
+                <Badge customColor={getTagColor('style', door.style)}>{door.style}</Badge>
               </div>
             </div>
           </Card>

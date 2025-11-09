@@ -7,11 +7,13 @@ import { MapView } from '@/components/MapView';
 import { Navigation } from '@/components/Navigation';
 import { SearchFilter } from '@/components/SearchFilter';
 import { AddDoorForm } from '@/components/AddDoorForm';
-import { Heart, Plus } from 'lucide-react';
+import { AdminPanel } from '@/components/AdminPanel';
+import { Heart, Plus, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { getTagColor } from '@/lib/tagColors';
 
 // Vertical Feed Door Card Component - Instagram Style
 interface VerticalDoorCardProps {
@@ -61,14 +63,24 @@ const VerticalDoorCard: React.FC<VerticalDoorCardProps> = ({
         <h3 className="font-display font-semibold text-night text-sm mb-1 truncate">
           {door.neighborhood}
         </h3>
-        
-        <div className="flex gap-1">
-          <Badge variant="color" className="text-xs px-2 py-0.5">
+
+        <div className="flex flex-wrap gap-1">
+          <Badge customColor={getTagColor('color', door.color)} className="text-[10px] px-1.5 py-0.5">
             {door.color}
           </Badge>
-          <Badge variant="material" className="text-xs px-2 py-0.5">
+          <Badge customColor={getTagColor('material', door.material)} className="text-[10px] px-1.5 py-0.5">
             {door.material}
           </Badge>
+          <Badge customColor={getTagColor('style', door.style)} className="text-[10px] px-1.5 py-0.5">
+            {door.style}
+          </Badge>
+          {door.ornamentations && door.ornamentations.length > 0 && (
+            door.ornamentations.slice(0, 2).map((ornament, idx) => (
+              <Badge key={idx} customColor={getTagColor('ornament', ornament)} className="text-[10px] px-1.5 py-0.5">
+                {ornament}
+              </Badge>
+            ))
+          )}
         </div>
       </div>
     </Card>
@@ -171,6 +183,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [selectedDoor, setSelectedDoor] = useState<Door | null>(null);
   const [isAddDoorOpen, setIsAddDoorOpen] = useState(false);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -568,6 +581,22 @@ const Index = () => {
         onClose={() => setIsAddDoorOpen(false)}
         onAddDoor={handleAddDoor}
       />
+
+      <AdminPanel
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
+      />
+
+      {/* Admin button - top left corner */}
+      <Button
+        onClick={() => setIsAdminOpen(true)}
+        variant="ghost"
+        size="sm"
+        className="fixed top-4 right-4 z-40 opacity-30 hover:opacity-100 transition-opacity"
+        title="Admin Panel"
+      >
+        <Settings className="w-4 h-4" />
+      </Button>
     </>
   );
 };

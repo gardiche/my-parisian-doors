@@ -6,22 +6,26 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
 } from '@/components/ui/dialog';
-import { 
-  Camera, 
-  Upload, 
-  MapPin, 
-  X, 
-  Loader2, 
+import {
+  Camera,
+  Upload,
+  MapPin,
+  X,
+  Loader2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  ChevronDown
 } from 'lucide-react';
+import { getLocationInfo } from '@/lib/location';
 
 interface AddDoorFormProps {
   isOpen: boolean;
@@ -32,6 +36,7 @@ interface AddDoorFormProps {
 const materials: DoorMaterial[] = ['Wood', 'Metal', 'Glass', 'Stone', 'Composite'];
 const colors: DoorColor[] = ['Green', 'Blue', 'Black', 'White', 'Cream', 'Brown', 'Red', 'Gray'];
 const styles: DoorStyle[] = ['Haussmann', 'Art Nouveau', 'Modern', 'Vintage', 'Industrial', 'Classic'];
+const ornamentations: DoorOrnamentation[] = ['Ironwork', 'Stained Glass', 'Wood Carving', 'Columns', 'Pediment', 'Door Knocker', 'Moldings', 'Flowers'];
 const arrondissements: DoorArrondissement[] = [
   '1st — Louvre',
   '2nd — Bourse',
@@ -78,6 +83,7 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
     description: ''
   });
 
+  const [selectedOrnamentations, setSelectedOrnamentations] = useState<DoorOrnamentation[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [isCompressing, setIsCompressing] = useState(false);
@@ -101,6 +107,7 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
       arrondissement: '' as DoorArrondissement,
       description: ''
     });
+    setSelectedOrnamentations([]);
     setImageFile(null);
     setImagePreview('');
     setCompressionInfo(null);
@@ -114,12 +121,12 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d')!;
       const img = new Image();
-      
+
       img.onload = () => {
         const maxWidth = 800;
         const maxHeight = 800;
         let { width, height } = img;
-        
+
         if (width > height) {
           if (width > maxWidth) {
             height = (height * maxWidth) / width;
@@ -131,15 +138,18 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
             height = maxHeight;
           }
         }
-        
+
         canvas.width = width;
         canvas.height = height;
+
+        // Apply saturation boost for more vibrant colors
+        ctx.filter = 'saturate(1.3) contrast(1.05)';
         ctx.drawImage(img, 0, 0, width, height);
-        
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
         resolve(compressedDataUrl);
       };
-      
+
       img.src = URL.createObjectURL(file);
     });
   };
@@ -202,6 +212,12 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
       const { latitude, longitude } = position.coords;
       setGpsCoordinates({ lat: latitude, lng: longitude });
 
+      console.log('🌍 GPS coordinates acquired:', latitude, longitude);
+
+      // Use intelligent location detection with POI and quartiers
+      const locationInfo = await getLocationInfo(latitude, longitude);
+
+      // Still call Nominatim for precise street address
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
         {
@@ -210,16 +226,15 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
           }
         }
       );
-      
+
+      let locationStr = '';
+
       if (response.ok) {
         const data = await response.json();
         const addr = data.address || {};
         const houseNumber = addr.house_number || '';
         const road = addr.road || addr.street || '';
-        const postalCode = addr.postcode || '';
-        const quarter = addr.quarter || addr.suburb || addr.neighbourhood || addr.district || '';
-        
-        let locationStr = '';
+
         if (houseNumber && road) {
           locationStr = `${houseNumber} ${road}`;
         } else if (road) {
@@ -227,31 +242,21 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
         } else {
           locationStr = data.display_name?.split(',')[0] || 'Address found';
         }
-        
-        // Auto-detect arrondissement from postal code
-        let detectedArrondissement: DoorArrondissement | null = null;
-        if (postalCode) {
-          detectedArrondissement = getArrondissementFromPostalCode(postalCode);
-        }
-        
-        setFormData(prev => ({
-          ...prev,
-          location: locationStr,
-          neighborhood: quarter || 'Paris',
-          arrondissement: detectedArrondissement || prev.arrondissement
-        }));
-        
-        setLocationSuccess(true);
-        setTimeout(() => setLocationSuccess(false), 3000);
-        
       } else {
-        setFormData(prev => ({
-          ...prev,
-          location: `GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-          neighborhood: 'Paris'
-        }));
-        setLocationSuccess(true);
+        locationStr = `GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
       }
+
+      // Use intelligent location info for neighborhood and arrondissement
+      setFormData(prev => ({
+        ...prev,
+        location: locationStr,
+        neighborhood: locationInfo.suggestedNeighborhood,
+        arrondissement: locationInfo.suggestedArrondissement || prev.arrondissement
+      }));
+
+      setLocationSuccess(true);
+      setTimeout(() => setLocationSuccess(false), 3000);
+
     } catch (error: any) {
       if (error.code === 1) {
         setLocationError('GPS permission denied');
@@ -268,15 +273,77 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
     }
   };
 
+  const geocodeAddress = async (address: string, arrondissement: DoorArrondissement): Promise<{lat: number, lng: number, locationInfo?: any} | null> => {
+    try {
+      // Normalize address: trim spaces, normalize multiple spaces
+      const normalizedAddress = address.trim().replace(/\s+/g, ' ');
+
+      // Extract postal code from arrondissement
+      const postalCode = arrondissement.match(/^(\d+)/)?.[1];
+      const fullPostalCode = postalCode ? `750${postalCode.padStart(2, '0')}` : '75001';
+
+      // Try multiple address formats for better geocoding success
+      const addressVariants = [
+        `${normalizedAddress}, ${fullPostalCode}, Paris, France`,
+        `${normalizedAddress}, Paris ${fullPostalCode}, France`,
+        `${normalizedAddress}, Paris, France`,
+        `${normalizedAddress}, ${fullPostalCode}`
+      ];
+
+      console.log('🔍 Attempting to geocode address:', normalizedAddress);
+
+      for (const fullAddress of addressVariants) {
+        console.log('  Trying format:', fullAddress);
+
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&limit=1`,
+          {
+            headers: {
+              'User-Agent': 'MyParisianDoors/1.0'
+            }
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.length > 0) {
+            const coords = {
+              lat: parseFloat(data[0].lat),
+              lng: parseFloat(data[0].lon)
+            };
+            console.log('  ✅ Found coordinates:', coords);
+
+            // Get intelligent location info (POI + quartier)
+            console.log('  🎯 Getting intelligent location info...');
+            const locationInfo = await getLocationInfo(coords.lat, coords.lng);
+
+            return {
+              ...coords,
+              locationInfo
+            };
+          }
+        }
+
+        // Wait a bit between requests to respect rate limits
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      console.log('  ❌ No coordinates found for any format');
+    } catch (error) {
+      console.error('❌ Error geocoding address:', error);
+    }
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!imageFile) {
       alert('Please add a photo');
       return;
     }
-    
-    if (!formData.location || !formData.neighborhood || !formData.material || !formData.color || !formData.style || !formData.arrondissement) {
+
+    if (!formData.location || !formData.material || !formData.color || !formData.style || !formData.arrondissement) {
       alert('Please fill in all required fields');
       return;
     }
@@ -286,25 +353,57 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
     try {
       const imageDataUrl = imagePreview;
 
+      // If no GPS coordinates, try to geocode the address
+      let coordinates = gpsCoordinates;
+      let finalNeighborhood = formData.neighborhood || 'Paris'; // Default fallback
+      let finalArrondissement = formData.arrondissement;
+
+      if (!coordinates && formData.location && formData.arrondissement) {
+        console.log('📍 No GPS coordinates found, attempting geocoding...');
+        const geocodeResult = await geocodeAddress(formData.location, formData.arrondissement);
+
+        if (geocodeResult) {
+          console.log('✅ Geocoding successful!');
+          coordinates = { lat: geocodeResult.lat, lng: geocodeResult.lng };
+
+          // Use intelligent location info if available
+          if (geocodeResult.locationInfo) {
+            finalNeighborhood = geocodeResult.locationInfo.suggestedNeighborhood;
+            finalArrondissement = geocodeResult.locationInfo.suggestedArrondissement || formData.arrondissement;
+            console.log('🎯 Using intelligent location:', finalNeighborhood, '-', finalArrondissement);
+          }
+        } else {
+          console.warn('⚠️ Geocoding failed - using default neighborhood');
+        }
+      } else if (coordinates) {
+        console.log('📍 Using GPS coordinates:', coordinates);
+      }
+
+      // Ensure we always have a neighborhood value
+      if (!finalNeighborhood) {
+        finalNeighborhood = 'Paris';
+      }
+
       const newDoor: Omit<Door, 'id'> = {
         imageUrl: imageDataUrl,
         location: formData.location,
-        neighborhood: formData.neighborhood,
+        neighborhood: finalNeighborhood,
         material: formData.material,
         color: formData.color,
         style: formData.style,
-        arrondissement: formData.arrondissement,
+        arrondissement: finalArrondissement,
         description: formData.description,
         isFavorite: false,
-        coordinates: gpsCoordinates || undefined,
+        coordinates: coordinates || undefined,
         dateAdded: new Date().toISOString(),
-        addedBy: 'user'
+        addedBy: 'user',
+        ornamentations: selectedOrnamentations.length > 0 ? selectedOrnamentations : undefined
       };
 
       onAddDoor(newDoor);
       resetForm();
       onClose();
-      
+
     } catch (error) {
       console.error('Error adding door:', error);
       alert('Error adding door');
@@ -313,7 +412,7 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
     }
   };
 
-  const isFormValid = imageFile && formData.location && formData.neighborhood && 
+  const isFormValid = imageFile && formData.location &&
                      formData.material && formData.color && formData.style && formData.arrondissement;
 
   return (
@@ -482,18 +581,6 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
                     </SelectContent>
                   </Select>
                 </div>
-                
-                <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    Neighborhood
-                    <span className="text-xs text-muted-foreground ml-1">(optional)</span>
-                  </label>
-                  <Input
-                    placeholder="e.g.: Le Marais"
-                    value={formData.neighborhood}
-                    onChange={(e) => setFormData(prev => ({ ...prev, neighborhood: e.target.value }))}
-                  />
-                </div>
               </div>
               
               {gpsCoordinates && (
@@ -564,6 +651,55 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-1 block">Ornamentations (optional)</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between font-normal"
+                    >
+                      {selectedOrnamentations.length > 0 ? (
+                        <span className="truncate">
+                          {selectedOrnamentations.length === 1
+                            ? selectedOrnamentations[0]
+                            : `${selectedOrnamentations.length} selected`}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Choose ornamentations</span>
+                      )}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <div className="max-h-60 overflow-auto p-2">
+                      {ornamentations.map((ornament) => (
+                        <div
+                          key={ornament}
+                          className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
+                          onClick={() => {
+                            if (selectedOrnamentations.includes(ornament)) {
+                              setSelectedOrnamentations(prev => prev.filter(o => o !== ornament));
+                            } else {
+                              setSelectedOrnamentations(prev => [...prev, ornament]);
+                            }
+                          }}
+                        >
+                          <Checkbox
+                            checked={selectedOrnamentations.includes(ornament)}
+                            onCheckedChange={() => {}}
+                          />
+                          <label className="text-sm cursor-pointer select-none flex-1">
+                            {ornament}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </Card>

@@ -1,8 +1,9 @@
-// Updated src/components/ui/badge.tsx with Parisian styling
+// Updated src/components/ui/badge.tsx with Parisian styling and custom colors
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
+import { getContrastColor } from "@/lib/tagColors"
 
 const badgeVariants = cva(
   "inline-flex items-center rounded-lg border px-3 py-1 text-xs font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-haussmann focus:ring-offset-2",
@@ -29,11 +30,25 @@ const badgeVariants = cva(
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+    VariantProps<typeof badgeVariants> {
+  customColor?: string; // Hex color for custom background
+}
 
-function Badge({ className, variant, ...props }: BadgeProps) {
+function Badge({ className, variant, customColor, style, ...props }: BadgeProps) {
+  // If customColor is provided, use inline styles
+  const customStyle = customColor ? {
+    backgroundColor: customColor,
+    color: getContrastColor(customColor),
+    borderColor: 'transparent',
+    ...style
+  } : style;
+
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    <div
+      className={cn(badgeVariants({ variant }), className)}
+      style={customStyle}
+      {...props}
+    />
   )
 }
 
