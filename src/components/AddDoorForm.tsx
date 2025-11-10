@@ -733,29 +733,31 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
                     <div className="max-h-60 overflow-auto p-2">
-                      {ornamentations.map((ornament) => (
-                        <div
-                          key={ornament}
-                          className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
-                          onClick={() => {
-                            if (selectedOrnamentations.includes(ornament)) {
-                              setSelectedOrnamentations(prev => prev.filter(o => o !== ornament));
-                            } else {
-                              setSelectedOrnamentations(prev => [...prev, ornament]);
-                            }
-                          }}
-                        >
-                          <Checkbox
-                            checked={selectedOrnamentations.includes(ornament)}
-                            onCheckedChange={() => {}}
-                          />
-                          <label className="text-sm cursor-pointer select-none flex-1">
-                            {ornament}
-                          </label>
-                        </div>
-                      ))}
+                      <div className="grid grid-cols-2 gap-1">
+                        {ornamentations.map((ornament) => (
+                          <div
+                            key={ornament}
+                            className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
+                            onClick={() => {
+                              if (selectedOrnamentations.includes(ornament)) {
+                                setSelectedOrnamentations(prev => prev.filter(o => o !== ornament));
+                              } else {
+                                setSelectedOrnamentations(prev => [...prev, ornament]);
+                              }
+                            }}
+                          >
+                            <Checkbox
+                              checked={selectedOrnamentations.includes(ornament)}
+                              onCheckedChange={() => {}}
+                            />
+                            <label className="text-sm cursor-pointer select-none flex-1">
+                              {ornament}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </PopoverContent>
                 </Popover>
