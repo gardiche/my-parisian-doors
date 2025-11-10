@@ -17,7 +17,6 @@ export async function fetchAllDoors(): Promise<Door[]> {
   const { data, error } = await supabase
     .from('doors')
     .select('*')
-    .order('created_at', { ascending: false })
 
   if (error) {
     console.error('Error fetching doors:', error)
@@ -25,7 +24,7 @@ export async function fetchAllDoors(): Promise<Door[]> {
   }
 
   // Transform Supabase data to Door type
-  return data.map(door => ({
+  const doors = data.map(door => ({
     id: door.id,
     imageUrl: door.image_url,
     location: door.location,
@@ -41,6 +40,14 @@ export async function fetchAllDoors(): Promise<Door[]> {
     dateAdded: door.date_added,
     addedBy: door.added_by
   }))
+
+  // Randomize the order using Fisher-Yates shuffle
+  for (let i = doors.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [doors[i], doors[j]] = [doors[j], doors[i]];
+  }
+
+  return doors
 }
 
 export async function addDoor(door: Omit<Door, 'id'>): Promise<Door | null> {

@@ -607,8 +607,9 @@ const Index = () => {
             onClose={() => setIsAdminOpen(false)}
           />
 
-          {/* Admin button - top left corner */}
-          <Button
+          {/* Admin button - hidden for beta testing */}
+          {/* Uncomment to enable admin features */}
+          {/* <Button
             onClick={() => setIsAdminOpen(true)}
             variant="ghost"
             size="sm"
@@ -616,7 +617,7 @@ const Index = () => {
             title="Admin Panel"
           >
             <Settings className="w-4 h-4" />
-          </Button>
+          </Button> */}
         </>
       )}
     </>
