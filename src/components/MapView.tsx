@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { MapPin, Navigation, ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
 import { SearchFilter } from '@/components/SearchFilter';
 import { cn } from '@/lib/utils';
+import * as turf from '@turf/turf';
 
 // Get color hex value from door color name
 const getDoorColorHex = (color: string): string => {
@@ -104,6 +105,10 @@ export function MapView({
   const [userLocation, setUserLocation] = React.useState<[number, number] | null>(null);
   const [isLocating, setIsLocating] = React.useState(false);
   const [showFilters, setShowFilters] = React.useState(false);
+  const [aroundMeActive, setAroundMeActive] = React.useState(false);
+
+  // Radius in kilometers for "Around me" filter
+  const AROUND_ME_RADIUS_KM = 1;
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -301,10 +306,82 @@ export function MapView({
     if (mapInstanceRef.current) {
       mapInstanceRef.current.setView([48.8566, 2.3522], 12);
       setSelectedNeighborhood(null);
+      setAroundMeActive(false);
     }
   };
 
+  const activateAroundMe = () => {
+    if (!userLocation) {
+      // Request location if not available
+      if (mapInstanceRef.current) {
+        import('leaflet').then(L => {
+          const userIcon = L.divIcon({
+            className: 'custom-user-marker',
+            html: `
+              <div class="relative">
+                <div class="w-6 h-6 bg-blue-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
+                <div class="absolute inset-0 w-6 h-6 bg-blue-400 rounded-full animate-ping opacity-75"></div>
+              </div>
+            `,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+          });
+          requestUserLocation(L, mapInstanceRef.current!, userIcon);
+        });
+      }
+    } else {
+      // Center on user location
+      mapInstanceRef.current?.flyTo(userLocation, 15);
+    }
+    setAroundMeActive(true);
+    setSelectedNeighborhood(null);
+  };
+
+  // Calculate visible doors count
+  const getVisibleDoorsCount = () => {
+    if (!aroundMeActive || !userLocation) {
+      return doors.length;
+    }
+
+    return doors.filter(door => {
+      const doorCoords = getDoorCoordinates(door);
+      const from = turf.point([userLocation[1], userLocation[0]]);
+      const to = turf.point([doorCoords[1], doorCoords[0]]);
+      const distance = turf.distance(from, to, { units: 'kilometers' });
+      return distance <= AROUND_ME_RADIUS_KM;
+    }).length;
+  };
+
+  // Filter markers based on "Around me" state
+  useEffect(() => {
+    if (!mapReady || markersRef.current.length === 0) return;
+
+    markersRef.current.forEach((marker, index) => {
+      const door = doors[index];
+      if (!door) return;
+
+      const doorCoords = getDoorCoordinates(door);
+
+      if (aroundMeActive && userLocation) {
+        // Calculate distance using turf
+        const from = turf.point([userLocation[1], userLocation[0]]);
+        const to = turf.point([doorCoords[1], doorCoords[0]]);
+        const distance = turf.distance(from, to, { units: 'kilometers' });
+
+        if (distance <= AROUND_ME_RADIUS_KM) {
+          marker.addTo(mapInstanceRef.current);
+        } else {
+          marker.remove();
+        }
+      } else {
+        // Show all markers
+        marker.addTo(mapInstanceRef.current);
+      }
+    });
+  }, [aroundMeActive, userLocation, mapReady, doors]);
+
   const neighborhoods = Array.from(new Set(doors.map(door => door.neighborhood)));
+  const visibleDoorsCount = getVisibleDoorsCount();
 
   return (
     <div className="relative h-screen bg-background">
@@ -371,23 +448,26 @@ export function MapView({
             <div className="flex flex-wrap gap-2 mt-2">
               <Button
                 size="sm"
-                variant={selectedNeighborhood === null ? "default" : "outline"}
+                variant={!aroundMeActive ? "default" : "outline"}
                 onClick={showAllDoors}
                 className="text-xs h-7"
               >
                 All Paris
               </Button>
-              {neighborhoods.slice(0, 4).map((neighborhood) => (
-                <Button
-                  key={neighborhood}
-                  size="sm"
-                  variant={selectedNeighborhood === neighborhood ? "default" : "outline"}
-                  onClick={() => flyToNeighborhood(neighborhood)}
-                  className="text-xs h-7"
-                >
-                  {neighborhood}
-                </Button>
-              ))}
+              <Button
+                size="sm"
+                variant={aroundMeActive ? "default" : "outline"}
+                onClick={activateAroundMe}
+                disabled={isLocating}
+                className="text-xs h-7"
+              >
+                {isLocating ? (
+                  <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                ) : (
+                  <Navigation className="w-3 h-3 mr-1" />
+                )}
+                Around me
+              </Button>
             </div>
           )}
         </Card>
@@ -430,7 +510,7 @@ export function MapView({
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
           <span className="text-sm font-medium">
-            {doors.length} door{doors.length !== 1 ? 's' : ''} on map
+            {visibleDoorsCount} door{visibleDoorsCount !== 1 ? 's' : ''} {aroundMeActive ? `within ${AROUND_ME_RADIUS_KM}km` : 'on map'}
           </span>
         </div>
       </Card>
