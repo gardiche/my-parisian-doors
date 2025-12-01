@@ -2,11 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="icon" type="image/png" href="/logo-website.png" />
     <title>My Parisian Doors</title>
     <meta name="description" content="Discover and collect the hidden architectural gems of Paris, one door at a time." />
     <meta name="author" content="My Parisian Doors" />
+
+    <!-- iOS PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Parisian Doors" />
+    <link rel="apple-touch-icon" href="/logo-website.png" />
+
+    <!-- Permissions Policy for Geolocation -->
+    <meta http-equiv="Permissions-Policy" content="geolocation=(self)" />
 
     <meta property="og:title" content="My Parisian Doors" />
     <meta property="og:description" content="Discover and collect the hidden architectural gems of Paris, one door at a time." />

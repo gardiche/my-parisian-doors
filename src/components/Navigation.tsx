@@ -1,5 +1,5 @@
 // Updated src/components/Navigation.tsx with Parisian UI
-import { Home, Map, Heart, Search } from 'lucide-react';
+import { Home, Map, Heart, Search, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NavigationProps {
@@ -13,6 +13,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
     { id: 'search', label: 'Search', icon: Search, color: 'sage' },
     { id: 'map', label: 'Map', icon: Map, color: 'ochre' },
     { id: 'favorites', label: 'Favorites', icon: Heart, color: 'brick' },
+    { id: 'mydoors', label: 'My doors', icon: User, color: 'charcoal' },
   ];
 
   return (
@@ -27,7 +28,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
               onClick={() => onTabChange(id)}
               className={cn(
                 "flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 min-w-[60px]",
-                isActive 
+                isActive
                   ? cn(
                       "shadow-parisian",
                       {
@@ -35,6 +36,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
                         'bg-sage text-night': color === 'sage',
                         'bg-ochre text-night': color === 'ochre',
                         'bg-brick text-cream': color === 'brick',
+                        'bg-charcoal text-cream': color === 'charcoal',
                       }
                     )
                   : "text-charcoal hover:text-night hover:bg-stone/50"

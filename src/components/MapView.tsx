@@ -222,18 +222,20 @@ export function MapView({
   }, [doors, onDoorClick]);
 
   const requestUserLocation = async (L: any, map: any, userIcon: any) => {
-    if (!navigator.geolocation) return;
+    const { checkGeolocationSupport, getCurrentPosition: getPosition, getGeolocationErrorMessage } = await import('@/lib/geolocation');
+
+    // Check support
+    const supportCheck = checkGeolocationSupport();
+    if (!supportCheck.supported) {
+      console.error(supportCheck.error);
+      alert(supportCheck.error || 'Géolocalisation non supportée');
+      return;
+    }
 
     setIsLocating(true);
-    
+
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 300000
-        });
-      });
+      const position = await getPosition({ maximumAge: 300000 });
 
       const { latitude, longitude } = position.coords;
       const userCoords: [number, number] = [latitude, longitude];
@@ -258,7 +260,16 @@ export function MapView({
       
       userMarkerRef.current = userMarker;
       
-    } catch (error) {
+    } catch (error: any) {
+      const { getGeolocationErrorMessage } = await import('@/lib/geolocation');
+      const geoError = getGeolocationErrorMessage(error);
+
+      let errorMsg = geoError.message;
+      if (geoError.iosInstructions) {
+        errorMsg += `\n\n${geoError.iosInstructions}`;
+      }
+
+      alert(errorMsg);
       console.error('Error getting user location:', error);
     } finally {
       setIsLocating(false);

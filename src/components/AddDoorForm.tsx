@@ -242,8 +242,16 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
   };
 
   const getCurrentLocation = async () => {
-    if (!navigator.geolocation) {
-      setLocationError('Geolocation not supported by your device');
+    // Import geolocation utilities
+    const { checkGeolocationSupport, getCurrentPosition: getPosition, getGeolocationErrorMessage, isIOS } = await import('@/lib/geolocation');
+
+    // Check support first
+    const supportCheck = checkGeolocationSupport();
+    if (!supportCheck.supported) {
+      setLocationError(supportCheck.error || 'Géolocalisation non supportée');
+      if (supportCheck.needsHTTPS) {
+        setLocationError('⚠️ HTTPS requis pour la géolocalisation sur iOS/Safari. Accédez via https:// ou localhost.');
+      }
       return;
     }
 
@@ -252,13 +260,7 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
     setLocationSuccess(false);
 
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0
-        });
-      });
+      const position = await getPosition();
 
       const { latitude, longitude } = position.coords;
       setGpsCoordinates({ lat: latitude, lng: longitude });
@@ -309,15 +311,15 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
       setTimeout(() => setLocationSuccess(false), 3000);
 
     } catch (error: any) {
-      if (error.code === 1) {
-        setLocationError('GPS permission denied');
-      } else if (error.code === 2) {
-        setLocationError('GPS position unavailable');
-      } else if (error.code === 3) {
-        setLocationError('GPS timeout exceeded');
-      } else {
-        setLocationError('Geolocation error');
+      const { getGeolocationErrorMessage } = await import('@/lib/geolocation');
+      const geoError = getGeolocationErrorMessage(error);
+
+      let errorMsg = geoError.message;
+      if (geoError.iosInstructions) {
+        errorMsg += `\n\n📱 ${geoError.iosInstructions}`;
       }
+
+      setLocationError(errorMsg);
       console.error('Geolocation error:', error);
     } finally {
       setIsLoadingLocation(false);
