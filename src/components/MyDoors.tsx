@@ -99,7 +99,7 @@ export function MyDoors({ doors, onDoorClick, onToggleFavorite }: MyDoorsProps) 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
+    return date.toLocaleDateString('en-US', {
       day: 'numeric',
       month: 'long',
       year: 'numeric'
@@ -112,10 +112,10 @@ export function MyDoors({ doors, onDoorClick, onToggleFavorite }: MyDoorsProps) 
         <div className="text-center py-16">
           <User className="w-16 h-16 mx-auto text-stone mb-4" />
           <h2 className="text-2xl font-display font-semibold text-night mb-2">
-            Aucune porte ajoutée
+            No doors added yet
           </h2>
           <p className="text-charcoal">
-            Commencez à photographier les portes parisiennes pour créer votre collection !
+            Start photographing Parisian doors to create your collection!
           </p>
         </div>
       </div>
@@ -131,7 +131,7 @@ export function MyDoors({ doors, onDoorClick, onToggleFavorite }: MyDoorsProps) 
           <h1 className="text-3xl font-display font-bold text-night">My Doors</h1>
         </div>
         <p className="text-lg text-charcoal">
-          <span className="font-semibold text-haussmann">{userDoors.length}</span> porte{userDoors.length > 1 ? 's' : ''} ajoutée{userDoors.length > 1 ? 's' : ''}
+          <span className="font-semibold text-haussmann">{userDoors.length}</span> door{userDoors.length > 1 ? 's' : ''} added
         </p>
       </div>
 
@@ -142,15 +142,15 @@ export function MyDoors({ doors, onDoorClick, onToggleFavorite }: MyDoorsProps) 
           <div className="bg-white rounded-xl p-4 shadow-parisian border border-stone">
             <div className="flex items-center gap-2 mb-3">
               <Calendar className="w-5 h-5 text-haussmann" />
-              <h3 className="font-display font-semibold text-night">Activité</h3>
+              <h3 className="font-display font-semibold text-night">Activity</h3>
             </div>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-charcoal">Première porte :</span>
+                <span className="text-charcoal">First door:</span>
                 <span className="font-medium text-night">{formatDate(stats.firstDoorDate)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-charcoal">Dernière porte :</span>
+                <span className="text-charcoal">Last door:</span>
                 <span className="font-medium text-night">{formatDate(stats.lastDoorDate)}</span>
               </div>
             </div>
@@ -164,7 +164,7 @@ export function MyDoors({ doors, onDoorClick, onToggleFavorite }: MyDoorsProps) 
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-bold text-ochre">{stats.arrondissementsExplored}</span>
-              <span className="text-charcoal">/20 arrondissements explorés</span>
+              <span className="text-charcoal">/20 arrondissements explored</span>
             </div>
           </div>
 
@@ -172,7 +172,7 @@ export function MyDoors({ doors, onDoorClick, onToggleFavorite }: MyDoorsProps) 
           {stats.topMaterials.length > 0 && (
             <StatCard
               icon={<Hammer className="w-5 h-5 text-sage" />}
-              title="Matériaux favoris"
+              title="Top Materials"
               items={stats.topMaterials}
               color="sage"
             />
@@ -182,7 +182,7 @@ export function MyDoors({ doors, onDoorClick, onToggleFavorite }: MyDoorsProps) 
           {stats.topColors.length > 0 && (
             <StatCard
               icon={<Palette className="w-5 h-5 text-brick" />}
-              title="Couleurs dominantes"
+              title="Top Colors"
               items={stats.topColors}
               color="brick"
             />
@@ -192,7 +192,7 @@ export function MyDoors({ doors, onDoorClick, onToggleFavorite }: MyDoorsProps) 
           {stats.topStyles.length > 0 && (
             <StatCard
               icon={<Building2 className="w-5 h-5 text-haussmann" />}
-              title="Styles préférés"
+              title="Top Styles"
               items={stats.topStyles}
               color="haussmann"
             />
@@ -202,7 +202,7 @@ export function MyDoors({ doors, onDoorClick, onToggleFavorite }: MyDoorsProps) 
           {stats.topOrnamentations.length > 0 && (
             <StatCard
               icon={<Sparkles className="w-5 h-5 text-ochre" />}
-              title="Ornementations"
+              title="Top Ornamentations"
               items={stats.topOrnamentations}
               color="ochre"
             />
@@ -212,7 +212,7 @@ export function MyDoors({ doors, onDoorClick, onToggleFavorite }: MyDoorsProps) 
 
       {/* Gallery Title */}
       <h2 className="text-xl font-display font-semibold text-night mb-4">
-        Ma Collection
+        My Collection
       </h2>
 
       {/* Masonry Gallery */}
@@ -265,7 +265,7 @@ function StatCard({ icon, title, items, color }: StatCardProps) {
               <div className="flex justify-between items-baseline gap-2">
                 <span className="font-medium text-night truncate">{item.label}</span>
                 <span className="text-sm text-charcoal shrink-0">
-                  {item.count} porte{item.count > 1 ? 's' : ''}
+                  {item.count} door{item.count > 1 ? 's' : ''}
                 </span>
               </div>
               {item.percentage !== undefined && (
