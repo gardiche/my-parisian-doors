@@ -15,6 +15,18 @@ export const isSafari = (): boolean => {
   return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 };
 
+export const isChromeIOS = (): boolean => {
+  return /CriOS/.test(navigator.userAgent);
+};
+
+export const getBrowserName = (): string => {
+  if (isChromeIOS()) return 'Chrome';
+  if (isSafari()) return 'Safari';
+  if (/Firefox/i.test(navigator.userAgent)) return 'Firefox';
+  if (/Edg/i.test(navigator.userAgent)) return 'Edge';
+  return 'votre navigateur';
+};
+
 export const isSecureContext = (): boolean => {
   return window.isSecureContext || window.location.protocol === 'https:' ||
          window.location.hostname === 'localhost' ||
@@ -47,17 +59,24 @@ export const checkGeolocationSupport = (): {
 
 export const getGeolocationErrorMessage = (error: GeolocationPositionError): GeolocationError => {
   const isAppleDevice = isIOS() || isSafari();
+  const browser = getBrowserName();
 
   switch (error.code) {
     case 1: // PERMISSION_DENIED
+      let instructions = '';
+
+      if (isChromeIOS()) {
+        instructions = 'Réglages → Chrome → Localisation → Lors de l\'utilisation';
+      } else if (isSafari() || isIOS()) {
+        instructions = 'Réglages → Safari → Localisation → Autoriser';
+      }
+
       return {
         code: 1,
         message: isAppleDevice
-          ? 'Accès GPS refusé. Veuillez autoriser l\'accès dans les réglages.'
+          ? `Accès GPS refusé. Veuillez autoriser l'accès dans les réglages de ${browser}.`
           : 'Accès GPS refusé',
-        iosInstructions: isAppleDevice
-          ? 'Réglages → Safari → Localisation → Autoriser'
-          : undefined
+        iosInstructions: instructions || undefined
       };
 
     case 2: // POSITION_UNAVAILABLE

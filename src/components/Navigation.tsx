@@ -43,7 +43,10 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
               )}
             >
               <Icon className="w-5 h-5" />
-              <span className="text-xs font-medium font-display">{label}</span>
+              <span className={cn(
+                "font-medium font-display whitespace-nowrap",
+                label.length > 8 ? "text-[10px]" : "text-xs"
+              )}>{label}</span>
             </button>
           );
         })}
