@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { getLocationInfo } from '@/lib/location';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AddDoorFormProps {
   isOpen: boolean;
@@ -75,6 +76,8 @@ const getArrondissementFromPostalCode = (postalCode: string): DoorArrondissement
 };
 
 export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
+  const { user, loading: authLoading } = useAuth();
+
   const [formData, setFormData] = useState({
     location: '',
     neighborhood: '',
@@ -467,6 +470,39 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
 
   const isFormValid = imageFile && formData.location &&
                      formData.material && formData.color && formData.style && formData.arrondissement;
+
+  // Show authentication required message if user is not logged in
+  if (!authLoading && !user) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-md mx-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-500" />
+              Authentication Required
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <p className="text-muted-foreground">
+              You need to be signed in to add doors to the collection.
+            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <p className="text-sm text-amber-800">
+                Please sign up or sign in to start adding your favorite Parisian doors.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={onClose} variant="outline">
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

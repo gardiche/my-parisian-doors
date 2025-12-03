@@ -50,6 +50,7 @@ export interface Door {
   isFavorite: boolean;
   dateAdded?: string;
   addedBy?: 'user' | 'preset';
+  userId?: string; // UUID of the user who created the door
   coordinates?: {
     lat: number;
     lng: number;

@@ -38,7 +38,8 @@ export async function fetchAllDoors(): Promise<Door[]> {
     isFavorite: door.is_favorite || false,
     coordinates: door.coordinates,
     dateAdded: door.date_added,
-    addedBy: door.added_by
+    addedBy: door.added_by,
+    userId: door.user_id
   }))
 
   // Randomize the order using Fisher-Yates shuffle
@@ -51,6 +52,14 @@ export async function fetchAllDoors(): Promise<Door[]> {
 }
 
 export async function addDoor(door: Omit<Door, 'id'>): Promise<Door | null> {
+  // Get current authenticated user
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    console.error('User must be authenticated to add doors')
+    return null
+  }
+
   // First, upload the image if it's a base64 string
   let imageUrl = door.imageUrl
 
@@ -62,11 +71,12 @@ export async function addDoor(door: Omit<Door, 'id'>): Promise<Door | null> {
     }
   }
 
-  // Insert door into database
+  // Insert door into database with user_id
   const { data, error } = await supabase
     .from('doors')
     .insert([
       {
+        user_id: user.id,
         image_url: imageUrl,
         location: door.location,
         neighborhood: door.neighborhood,
@@ -104,7 +114,8 @@ export async function addDoor(door: Omit<Door, 'id'>): Promise<Door | null> {
     isFavorite: data.is_favorite,
     coordinates: data.coordinates,
     dateAdded: data.date_added,
-    addedBy: data.added_by
+    addedBy: data.added_by,
+    userId: data.user_id
   }
 }
 

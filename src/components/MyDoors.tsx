@@ -3,6 +3,7 @@ import { Door, DoorMaterial, DoorColor, DoorStyle, DoorOrnamentation } from '@/t
 import { VerticalDoorCard } from '@/components/VerticalDoorCard';
 import { User, Calendar, Map as MapIcon, Palette, Hammer, Sparkles, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface MyDoorsProps {
   doors: Door[];
@@ -17,11 +18,17 @@ interface StatItem {
 }
 
 export function MyDoors({ doors, onDoorClick, onToggleFavorite }: MyDoorsProps) {
-  // Filter only user-added doors
-  const userDoors = useMemo(() =>
-    doors.filter(door => door.addedBy === 'user'),
-    [doors]
-  );
+  const { user } = useAuth();
+
+  // Filter only doors created by the authenticated user
+  const userDoors = useMemo(() => {
+    if (!user) {
+      // If no user is logged in, show doors added in this session (fallback for anonymous users)
+      return doors.filter(door => door.addedBy === 'user');
+    }
+    // Show only doors created by the authenticated user
+    return doors.filter(door => door.userId === user.id);
+  }, [doors, user]);
 
   // Calculate statistics
   const stats = useMemo(() => {

@@ -9,6 +9,7 @@ import { SearchFilter } from '@/components/SearchFilter';
 import { AddDoorForm } from '@/components/AddDoorForm';
 import { AdminPanel } from '@/components/AdminPanel';
 import { SplashScreen } from '@/components/SplashScreen';
+import { SignUp } from '@/components/SignUp';
 import { MyDoors } from '@/components/MyDoors';
 import { VerticalDoorCard } from '@/components/VerticalDoorCard';
 import { Heart, Plus, Settings } from 'lucide-react';
@@ -119,6 +120,7 @@ const Index = () => {
     const hasSeenSplash = localStorage.getItem('hasSeenSplash');
     return !hasSeenSplash;
   });
+  const [showSignUp, setShowSignUp] = useState(false);
 
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -144,6 +146,17 @@ const Index = () => {
   const handleSplashFinish = () => {
     setShowSplash(false);
     localStorage.setItem('hasSeenSplash', 'true');
+
+    // Check if user has an account
+    const hasAccount = localStorage.getItem('hasAccount');
+    if (!hasAccount) {
+      setShowSignUp(true);
+    }
+  };
+
+  // Handle sign up completion
+  const handleSignUpComplete = () => {
+    setShowSignUp(false);
   };
 
   // Handle scroll
@@ -506,7 +519,9 @@ const Index = () => {
     <>
       {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
 
-      {!showSplash && (
+      {showSignUp && !showSplash && <SignUp onComplete={handleSignUpComplete} />}
+
+      {!showSplash && !showSignUp && (
         <>
           {renderContent()}
 
@@ -532,7 +547,7 @@ const Index = () => {
         </>
       )}
 
-      {!showSplash && (
+      {!showSplash && !showSignUp && (
         <>
           <AddDoorForm
             isOpen={isAddDoorOpen}
