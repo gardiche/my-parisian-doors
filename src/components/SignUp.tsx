@@ -23,10 +23,19 @@ export function SignUp({ onComplete }: SignUpProps) {
     setIsLoading(true);
 
     try {
+      // Use production URL in production, localhost in dev
+      const redirectUrl = import.meta.env.PROD
+        ? window.location.origin
+        : window.location.origin;
+
       const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
 
