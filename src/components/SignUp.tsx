@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 import { Eye, EyeOff, Mail, User, Lock } from 'lucide-react';
 
 interface SignUpProps {
@@ -39,7 +40,7 @@ export function SignUp({ onComplete }: SignUpProps) {
       localStorage.setItem('hasAccount', 'true');
     } catch (err) {
       setError('An error occurred with Google sign-in.');
-      console.error(err);
+      logger.error('Google sign-in failed', err);
       setIsLoading(false);
     }
   };
@@ -80,15 +81,10 @@ export function SignUp({ onComplete }: SignUpProps) {
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
-      console.error(err);
+      logger.error('Sign up failed', err);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleSkip = () => {
-    localStorage.setItem('hasAccount', 'true');
-    onComplete();
   };
 
   return (
@@ -106,7 +102,7 @@ export function SignUp({ onComplete }: SignUpProps) {
               Welcome to Paris
             </h1>
             <p className="text-charcoal text-sm">
-              Discover and collect the most beautiful doors
+              Sign in to discover and collect beautiful doors
             </p>
           </div>
 
@@ -249,16 +245,6 @@ export function SignUp({ onComplete }: SignUpProps) {
                   ) : (
                     'Create Account'
                   )}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={handleSkip}
-                  className="w-full h-12 text-charcoal hover:text-night"
-                  disabled={isLoading}
-                >
-                  Skip for now
                 </Button>
               </div>
             </form>

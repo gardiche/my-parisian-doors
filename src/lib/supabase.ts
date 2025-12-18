@@ -1,12 +1,16 @@
 // src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js'
 import { Door } from '@/types/door'
+import { logger } from '@/lib/logger'
+import { validateNewDoor, sanitizeHtml } from '@/lib/validation'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
+  const error = new Error('Missing Supabase environment variables')
+  logger.error('Supabase configuration error', error)
+  throw error
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
@@ -19,7 +23,7 @@ export async function fetchAllDoors(): Promise<Door[]> {
     .select('*')
 
   if (error) {
-    console.error('Error fetching doors:', error)
+    logger.error('Error fetching doors from database', error)
     return []
   }
 
@@ -56,17 +60,32 @@ export async function addDoor(door: Omit<Door, 'id'>): Promise<Door | null> {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    console.error('User must be authenticated to add doors')
+    logger.warn('Attempted to add door without authentication')
     return null
   }
 
-  // First, upload the image if it's a base64 string
-  let imageUrl = door.imageUrl
+  // Validate input data
+  const validation = validateNewDoor(door)
+  if (!validation.success) {
+    logger.error('Invalid door data', validation.errors, { location: door.location })
+    return null
+  }
 
-  if (door.imageUrl.startsWith('data:image')) {
-    imageUrl = await uploadImage(door.imageUrl)
+  // Use validated and sanitized data
+  const validatedDoor = validation.data
+
+  // Sanitize description if present
+  if (validatedDoor.description) {
+    validatedDoor.description = sanitizeHtml(validatedDoor.description)
+  }
+
+  // First, upload the image if it's a base64 string
+  let imageUrl = validatedDoor.imageUrl
+
+  if (validatedDoor.imageUrl.startsWith('data:image')) {
+    imageUrl = await uploadImage(validatedDoor.imageUrl)
     if (!imageUrl) {
-      console.error('Failed to upload image')
+      logger.error('Failed to upload image to storage')
       return null
     }
   }
@@ -78,25 +97,25 @@ export async function addDoor(door: Omit<Door, 'id'>): Promise<Door | null> {
       {
         user_id: user.id,
         image_url: imageUrl,
-        location: door.location,
-        neighborhood: door.neighborhood,
-        material: door.material,
-        color: door.color,
-        style: door.style,
-        arrondissement: door.arrondissement,
-        ornamentations: door.ornamentations || [],
-        description: door.description,
-        is_favorite: door.isFavorite || false,
-        coordinates: door.coordinates,
-        date_added: door.dateAdded || new Date().toISOString(),
-        added_by: door.addedBy || 'user'
+        location: validatedDoor.location,
+        neighborhood: validatedDoor.neighborhood,
+        material: validatedDoor.material,
+        color: validatedDoor.color,
+        style: validatedDoor.style,
+        arrondissement: validatedDoor.arrondissement,
+        ornamentations: validatedDoor.ornamentations || [],
+        description: validatedDoor.description,
+        is_favorite: validatedDoor.isFavorite || false,
+        coordinates: validatedDoor.coordinates,
+        date_added: validatedDoor.dateAdded || new Date().toISOString(),
+        added_by: validatedDoor.addedBy || 'user'
       }
     ])
     .select()
     .single()
 
   if (error) {
-    console.error('Error adding door:', error)
+    logger.error('Error inserting door into database', error, { location: validatedDoor.location })
     return null
   }
 
@@ -126,7 +145,7 @@ export async function toggleFavoriteDoor(doorId: string, isFavorite: boolean): P
     .eq('id', doorId)
 
   if (error) {
-    console.error('Error updating favorite:', error)
+    logger.error('Error updating favorite status', error, { doorId, isFavorite })
     return false
   }
 
@@ -135,12 +154,33 @@ export async function toggleFavoriteDoor(doorId: string, isFavorite: boolean): P
 
 async function uploadImage(base64Image: string): Promise<string | null> {
   try {
+    // Security check: validate base64 image format
+    if (!base64Image.startsWith('data:image/')) {
+      logger.error('Invalid image format - not a data URL')
+      return null
+    }
+
     // Convert base64 to blob
     const response = await fetch(base64Image)
     const blob = await response.blob()
 
-    // Generate unique filename
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`
+    // Security check: validate blob size (max 10MB)
+    const MAX_SIZE = 10 * 1024 * 1024
+    if (blob.size > MAX_SIZE) {
+      logger.error('Image file too large', undefined, { size: blob.size, maxSize: MAX_SIZE })
+      return null
+    }
+
+    // Security check: validate MIME type
+    const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    if (!ALLOWED_TYPES.includes(blob.type)) {
+      logger.error('Invalid image MIME type', undefined, { type: blob.type })
+      return null
+    }
+
+    // Generate unique filename with proper extension
+    const extension = blob.type.split('/')[1] || 'jpg'
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`
     const filePath = `doors/${fileName}`
 
     // Upload to Supabase Storage
@@ -152,7 +192,7 @@ async function uploadImage(base64Image: string): Promise<string | null> {
       })
 
     if (error) {
-      console.error('Error uploading image:', error)
+      logger.error('Error uploading image to Supabase storage', error, { filePath })
       return null
     }
 
@@ -161,9 +201,10 @@ async function uploadImage(base64Image: string): Promise<string | null> {
       .from('door-images')
       .getPublicUrl(data.path)
 
+    logger.info('Image uploaded successfully', { publicUrl, filePath })
     return publicUrl
   } catch (error) {
-    console.error('Error processing image:', error)
+    logger.error('Error processing image for upload', error)
     return null
   }
 }

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 
 interface AuthContextType {
   user: User | null;
@@ -52,7 +53,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         }
       } catch (error) {
-        console.error('Error getting session:', error);
+        logger.error('Error getting auth session', error);
       } finally {
         setLoading(false);
       }
@@ -95,8 +96,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.removeItem('userEmail');
       localStorage.removeItem('userName');
       // Keep hasAccount to prevent splash/signup from showing again
+      logger.info('User signed out successfully');
     } catch (error) {
-      console.error('Error signing out:', error);
+      logger.error('Error signing out', error);
     }
   };
 

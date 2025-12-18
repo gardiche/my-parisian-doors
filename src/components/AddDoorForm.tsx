@@ -29,11 +29,13 @@ import {
 import { getLocationInfo } from '@/lib/location';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/lib/logger';
 
 interface AddDoorFormProps {
   isOpen: boolean;
   onClose: () => void;
   onAddDoor: (door: Omit<Door, 'id'>) => void;
+  onNeedLogin?: () => void;
 }
 
 const materials: DoorMaterial[] = ['Wood', 'Metal', 'Glass', 'Stone', 'Composite'];
@@ -75,7 +77,7 @@ const getArrondissementFromPostalCode = (postalCode: string): DoorArrondissement
   return arrondissements.find(arr => arr.startsWith(ordinal)) || null;
 };
 
-export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
+export function AddDoorForm({ isOpen, onClose, onAddDoor, onNeedLogin }: AddDoorFormProps) {
   const { user, loading: authLoading } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -145,7 +147,7 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
         .ilike('location', normalizedLocation);
 
       if (error) {
-        console.error('Error checking for duplicates:', error);
+        logger.error('Error checking for duplicate doors', error, { location, arrondissement });
         return;
       }
 
@@ -155,7 +157,7 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
         setDuplicateWarning('');
       }
     } catch (error) {
-      console.error('Error checking duplicates:', error);
+      logger.error('Exception while checking duplicates', error);
     } finally {
       setIsCheckingDuplicate(false);
     }
@@ -225,7 +227,7 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
         });
         
       } catch (error) {
-        console.error('Error compressing image:', error);
+        logger.error('Error compressing image, falling back to original', error);
         const reader = new FileReader();
         reader.onload = (e) => {
           setImagePreview(e.target?.result as string);
@@ -268,7 +270,7 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
       const { latitude, longitude } = position.coords;
       setGpsCoordinates({ lat: latitude, lng: longitude });
 
-      console.log('🌍 GPS coordinates acquired:', latitude, longitude);
+      logger.info('GPS coordinates acquired', { latitude, longitude });
 
       // Use intelligent location detection with POI and quartiers
       const locationInfo = await getLocationInfo(latitude, longitude);
@@ -323,7 +325,7 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
       }
 
       setLocationError(errorMsg);
-      console.error('Geolocation error:', error);
+      logger.error('Geolocation error', error);
     } finally {
       setIsLoadingLocation(false);
     }
@@ -346,10 +348,10 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
         `${normalizedAddress}, ${fullPostalCode}`
       ];
 
-      console.log('🔍 Attempting to geocode address:', normalizedAddress);
+      logger.debug('Attempting to geocode address', { normalizedAddress, postalCode: fullPostalCode });
 
       for (const fullAddress of addressVariants) {
-        console.log('  Trying format:', fullAddress);
+        logger.debug('Trying address format', { fullAddress });
 
         const response = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&limit=1`,
@@ -367,10 +369,10 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
               lat: parseFloat(data[0].lat),
               lng: parseFloat(data[0].lon)
             };
-            console.log('  ✅ Found coordinates:', coords);
+            logger.debug('Found coordinates for address', { coords, fullAddress });
 
             // Get intelligent location info (POI + quartier)
-            console.log('  🎯 Getting intelligent location info...');
+            logger.debug('Getting intelligent location info');
             const locationInfo = await getLocationInfo(coords.lat, coords.lng);
 
             return {
@@ -384,9 +386,9 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
 
-      console.log('  ❌ No coordinates found for any format');
+      logger.warn('No coordinates found for address', { normalizedAddress });
     } catch (error) {
-      console.error('❌ Error geocoding address:', error);
+      logger.error('Error geocoding address', error, { address });
     }
     return null;
   };
@@ -415,24 +417,24 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
       let finalArrondissement = formData.arrondissement;
 
       if (!coordinates && formData.location && formData.arrondissement) {
-        console.log('📍 No GPS coordinates found, attempting geocoding...');
+        logger.info('No GPS coordinates, attempting geocoding', { location: formData.location });
         const geocodeResult = await geocodeAddress(formData.location, formData.arrondissement);
 
         if (geocodeResult) {
-          console.log('✅ Geocoding successful!');
+          logger.info('Geocoding successful');
           coordinates = { lat: geocodeResult.lat, lng: geocodeResult.lng };
 
           // Use intelligent location info if available
           if (geocodeResult.locationInfo) {
             finalNeighborhood = geocodeResult.locationInfo.suggestedNeighborhood;
             finalArrondissement = geocodeResult.locationInfo.suggestedArrondissement || formData.arrondissement;
-            console.log('🎯 Using intelligent location:', finalNeighborhood, '-', finalArrondissement);
+            logger.debug('Using intelligent location data', { finalNeighborhood, finalArrondissement });
           }
         } else {
-          console.warn('⚠️ Geocoding failed - using default neighborhood');
+          logger.warn('Geocoding failed, using default neighborhood');
         }
       } else if (coordinates) {
-        console.log('📍 Using GPS coordinates:', coordinates);
+        logger.info('Using GPS coordinates', { coordinates });
       }
 
       // Ensure we always have a neighborhood value
@@ -461,8 +463,8 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
       onClose();
 
     } catch (error) {
-      console.error('Error adding door:', error);
-      alert('Error adding door');
+      logger.error('Error adding door', error, { location: formData.location });
+      alert('Error adding door. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -497,6 +499,15 @@ export function AddDoorForm({ isOpen, onClose, onAddDoor }: AddDoorFormProps) {
           <DialogFooter>
             <Button onClick={onClose} variant="outline">
               Close
+            </Button>
+            <Button
+              onClick={() => {
+                onClose();
+                onNeedLogin?.();
+              }}
+              className="gap-2"
+            >
+              Log in
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
 import { Door, DoorMaterial, DoorColor, DoorStyle, DoorOrnamentation } from '@/types/door';
 import { VerticalDoorCard } from '@/components/VerticalDoorCard';
-import { User, Calendar, Map as MapIcon, Palette, Hammer, Sparkles, Building2 } from 'lucide-react';
+import { User, Calendar, Map as MapIcon, Palette, Hammer, Sparkles, Building2, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 
 interface MyDoorsProps {
   doors: Door[];
@@ -18,7 +19,7 @@ interface StatItem {
 }
 
 export function MyDoors({ doors, onDoorClick, onToggleFavorite }: MyDoorsProps) {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   // Filter only doors created by the authenticated user
   const userDoors = useMemo(() => {
@@ -131,11 +132,26 @@ export function MyDoors({ doors, onDoorClick, onToggleFavorite }: MyDoorsProps) 
 
   return (
     <div className="max-w-md mx-auto px-4 py-6 pb-24">
-      {/* Header with count */}
+      {/* Header with count and logout button */}
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <User className="w-8 h-8 text-haussmann" />
-          <h1 className="text-3xl font-display font-bold text-night">My Doors</h1>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <User className="w-8 h-8 text-haussmann" />
+            <h1 className="text-3xl font-display font-bold text-night">My Doors</h1>
+          </div>
+
+          {/* Logout Button - Only show if user is logged in */}
+          {user && (
+            <Button
+              onClick={signOut}
+              variant="outline"
+              size="sm"
+              className="text-charcoal hover:text-white hover:bg-brick border-stone transition-colors gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="text-sm font-medium">Log out</span>
+            </Button>
+          )}
         </div>
         <p className="text-lg text-charcoal">
           <span className="font-semibold text-haussmann">{userDoors.length}</span> door{userDoors.length > 1 ? 's' : ''} added

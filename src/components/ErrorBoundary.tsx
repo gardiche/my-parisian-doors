@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { logger } from '@/lib/logger';
 
 interface Props {
   children: React.ReactNode;
@@ -22,10 +23,12 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    logger.error('React Error Boundary caught an error', error, {
+      componentStack: errorInfo.componentStack,
+    });
 
-    // You can log to an error reporting service here
-    // Example: logErrorToService(error, errorInfo);
+    // In production, this would send to Sentry or another error tracking service
+    // Example: Sentry.captureException(error, { contexts: { react: errorInfo } });
   }
 
   handleReset = () => {

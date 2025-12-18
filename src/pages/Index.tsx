@@ -15,6 +15,7 @@ import { VerticalDoorCard } from '@/components/VerticalDoorCard';
 import { Heart, Plus, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Masonry Layout Component
 interface MasonryLayoutProps {
@@ -107,6 +108,9 @@ const MasonryLayout: React.FC<MasonryLayoutProps> = ({
 };
 
 const Index = () => {
+  // Authentication
+  const { user, loading: authLoading } = useAuth();
+
   // State management
   const [doors, setDoors] = useState<Door[]>([]);
   const [activeTab, setActiveTab] = useState('home');
@@ -146,18 +150,22 @@ const Index = () => {
   const handleSplashFinish = () => {
     setShowSplash(false);
     localStorage.setItem('hasSeenSplash', 'true');
-
-    // Check if user has an account
-    const hasAccount = localStorage.getItem('hasAccount');
-    if (!hasAccount) {
-      setShowSignUp(true);
-    }
   };
 
   // Handle sign up completion
   const handleSignUpComplete = () => {
     setShowSignUp(false);
   };
+
+  // Force authentication check after splash screen
+  // Show signup screen if user is not authenticated
+  useEffect(() => {
+    if (!showSplash && !authLoading && !user) {
+      setShowSignUp(true);
+    } else if (!showSplash && !authLoading && user) {
+      setShowSignUp(false);
+    }
+  }, [showSplash, authLoading, user]);
 
   // Handle scroll
   useEffect(() => {
@@ -519,9 +527,21 @@ const Index = () => {
     <>
       {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
 
-      {showSignUp && !showSplash && <SignUp onComplete={handleSignUpComplete} />}
+      {/* Show auth loading state after splash while checking authentication */}
+      {!showSplash && authLoading && (
+        <div className="fixed inset-0 z-[9998] bg-gradient-to-br from-rose-50 via-blue-50 to-amber-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-haussmann border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-charcoal">Checking authentication...</p>
+          </div>
+        </div>
+      )}
 
-      {!showSplash && !showSignUp && (
+      {/* Show signup/login screen if not authenticated */}
+      {showSignUp && !showSplash && !authLoading && <SignUp onComplete={handleSignUpComplete} />}
+
+      {/* Main app content - only accessible when authenticated */}
+      {!showSplash && !showSignUp && !authLoading && user && (
         <>
           {renderContent()}
 
@@ -547,12 +567,14 @@ const Index = () => {
         </>
       )}
 
-      {!showSplash && !showSignUp && (
+      {/* Forms and admin panel - only accessible when authenticated */}
+      {!showSplash && !showSignUp && !authLoading && user && (
         <>
           <AddDoorForm
             isOpen={isAddDoorOpen}
             onClose={() => setIsAddDoorOpen(false)}
             onAddDoor={handleAddDoor}
+            onNeedLogin={() => setShowSignUp(true)}
           />
 
           <AdminPanel
