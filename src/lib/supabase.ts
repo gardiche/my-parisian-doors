@@ -18,6 +18,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 // Helper functions for door operations
 
 export async function fetchAllDoors(): Promise<Door[]> {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Fetch all doors
   const { data, error } = await supabase
     .from('doors')
     .select('*')
@@ -25,6 +29,19 @@ export async function fetchAllDoors(): Promise<Door[]> {
   if (error) {
     logger.error('Error fetching doors from database', error)
     return []
+  }
+
+  // Fetch user's favorites if logged in
+  let userFavorites: Set<string> = new Set()
+  if (user) {
+    const { data: favoritesData } = await supabase
+      .from('user_favorites')
+      .select('door_id')
+      .eq('user_id', user.id)
+
+    if (favoritesData) {
+      userFavorites = new Set(favoritesData.map(fav => fav.door_id))
+    }
   }
 
   // Transform Supabase data to Door type
@@ -39,7 +56,7 @@ export async function fetchAllDoors(): Promise<Door[]> {
     arrondissement: door.arrondissement,
     ornamentations: door.ornamentations || [],
     description: door.description,
-    isFavorite: door.is_favorite || false,
+    isFavorite: userFavorites.has(door.id), // User-specific favorite
     coordinates: door.coordinates,
     dateAdded: door.date_added,
     addedBy: door.added_by,
@@ -139,17 +156,50 @@ export async function addDoor(door: Omit<Door, 'id'>): Promise<Door | null> {
 }
 
 export async function toggleFavoriteDoor(doorId: string, isFavorite: boolean): Promise<boolean> {
-  const { error } = await supabase
-    .from('doors')
-    .update({ is_favorite: isFavorite })
-    .eq('id', doorId)
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (error) {
-    logger.error('Error updating favorite status', error, { doorId, isFavorite })
+  if (!user) {
+    logger.warn('Attempted to toggle favorite without authentication')
     return false
   }
 
-  return true
+  try {
+    if (isFavorite) {
+      // Add to favorites
+      const { error } = await supabase
+        .from('user_favorites')
+        .insert({
+          user_id: user.id,
+          door_id: doorId
+        })
+
+      if (error) {
+        // Ignore unique constraint violations (already favorited)
+        if (error.code !== '23505') {
+          logger.error('Error adding favorite', error, { doorId, userId: user.id })
+          return false
+        }
+      }
+    } else {
+      // Remove from favorites
+      const { error } = await supabase
+        .from('user_favorites')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('door_id', doorId)
+
+      if (error) {
+        logger.error('Error removing favorite', error, { doorId, userId: user.id })
+        return false
+      }
+    }
+
+    return true
+  } catch (error) {
+    logger.error('Exception while toggling favorite', error, { doorId, isFavorite })
+    return false
+  }
 }
 
 async function uploadImage(base64Image: string): Promise<string | null> {
