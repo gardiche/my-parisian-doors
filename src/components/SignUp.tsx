@@ -4,14 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
-import { Eye, EyeOff, Mail, User, Lock } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 
 interface SignUpProps {
   onComplete: () => void;
 }
 
 export function SignUp({ onComplete }: SignUpProps) {
-  const [name, setName] = useState('');
+  const [isSignUp, setIsSignUp] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -54,43 +54,58 @@ export function SignUp({ onComplete }: SignUpProps) {
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
     try {
-      // Sign up with Supabase
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: name,
-          },
-        },
-      });
+      if (isSignUp) {
+        // Sign up
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
 
-      if (signUpError) {
-        setError(signUpError.message);
-        setIsLoading(false);
-        return;
-      }
+        if (signUpError) {
+          setError(signUpError.message);
+          setIsLoading(false);
+          return;
+        }
 
-      // Store user info in localStorage
-      if (data.user) {
-        localStorage.setItem('userEmail', email);
-        localStorage.setItem('userName', name);
-        localStorage.setItem('hasAccount', 'true');
+        if (data.user) {
+          localStorage.setItem('userEmail', email);
+          localStorage.setItem('hasAccount', 'true');
 
-        // Complete signup
-        setTimeout(() => {
-          onComplete();
-        }, 500);
+          setTimeout(() => {
+            onComplete();
+          }, 500);
+        }
+      } else {
+        // Sign in
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (signInError) {
+          setError(signInError.message);
+          setIsLoading(false);
+          return;
+        }
+
+        if (data.user) {
+          localStorage.setItem('userEmail', email);
+          localStorage.setItem('hasAccount', 'true');
+
+          setTimeout(() => {
+            onComplete();
+          }, 500);
+        }
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
-      logger.error('Sign up failed', err);
+      logger.error(isSignUp ? 'Sign up failed' : 'Sign in failed', err);
     } finally {
       setIsLoading(false);
     }
@@ -111,12 +126,44 @@ export function SignUp({ onComplete }: SignUpProps) {
               Welcome to Paris
             </h1>
             <p className="text-charcoal text-sm">
-              Sign in to discover and collect beautiful doors
+              {isSignUp ? 'Create an account to start your collection' : 'Sign in to continue'}
             </p>
           </div>
 
-          {/* Sign Up Form */}
+          {/* Auth Form */}
           <div className="card-parisian p-6 animate-in slide-in-from-bottom-4 duration-700">
+            {/* Toggle Sign In / Sign Up */}
+            <div className="flex gap-2 mb-6 bg-stone/30 p-1 rounded-lg">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignUp(false);
+                  setError('');
+                }}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 ${
+                  !isSignUp
+                    ? 'bg-white text-haussmann shadow-sm'
+                    : 'text-charcoal hover:text-night'
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignUp(true);
+                  setError('');
+                }}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 ${
+                  isSignUp
+                    ? 'bg-white text-haussmann shadow-sm'
+                    : 'text-charcoal hover:text-night'
+                }`}
+              >
+                Sign Up
+              </button>
+            </div>
+
             {/* Google Sign In Button */}
             <Button
               type="button"
@@ -156,27 +203,7 @@ export function SignUp({ onComplete }: SignUpProps) {
               </div>
             </div>
 
-            <form onSubmit={handleSignUp} className="space-y-4">
-              {/* Name Input */}
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-night font-medium">
-                  Your Name
-                </Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-charcoal" />
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Jean Dupont"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="pl-10 h-12 bg-cream border-stone focus:border-haussmann transition-all duration-300"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-
+            <form onSubmit={handleSubmit} className="space-y-4">
               {/* Email Input */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-night font-medium">
@@ -227,9 +254,11 @@ export function SignUp({ onComplete }: SignUpProps) {
                     )}
                   </button>
                 </div>
-                <p className="text-xs text-charcoal">
-                  At least 6 characters
-                </p>
+                {isSignUp && (
+                  <p className="text-xs text-charcoal">
+                    At least 6 characters
+                  </p>
+                )}
               </div>
 
               {/* Error Message */}
@@ -244,15 +273,15 @@ export function SignUp({ onComplete }: SignUpProps) {
                 <Button
                   type="submit"
                   className="w-full h-12 text-base"
-                  disabled={isLoading || !name || !email || !password}
+                  disabled={isLoading || !email || !password}
                 >
                   {isLoading ? (
                     <div className="flex items-center gap-2">
                       <div className="w-5 h-5 border-2 border-cream border-t-transparent rounded-full animate-spin" />
-                      <span>Creating account...</span>
+                      <span>{isSignUp ? 'Creating account...' : 'Signing in...'}</span>
                     </div>
                   ) : (
-                    'Create Account'
+                    <span>{isSignUp ? 'Create Account' : 'Sign In'}</span>
                   )}
                 </Button>
               </div>
