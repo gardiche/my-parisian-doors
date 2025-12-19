@@ -15,8 +15,11 @@ interface DoorDetailProps {
 
 export function DoorDetail({ door, onBack, onToggleFavorite }: DoorDetailProps) {
   const [isAnimating, setIsAnimating] = useState(false);
+  const [willBeFavorite, setWillBeFavorite] = useState(door.isFavorite);
 
   const handleFavoriteClick = () => {
+    const newState = !door.isFavorite;
+    setWillBeFavorite(newState);
     setIsAnimating(true);
     onToggleFavorite(door.id);
 
@@ -57,17 +60,26 @@ export function DoorDetail({ door, onBack, onToggleFavorite }: DoorDetailProps) 
                   "w-4 h-4 transition-all duration-300",
                   door.isFavorite && "fill-red-500 text-red-500",
                   !door.isFavorite && "text-muted-foreground",
-                  isAnimating && "animate-[heartBeat_0.6s_ease-in-out]"
+                  isAnimating && willBeFavorite && "animate-[heartBeat_0.6s_ease-in-out]",
+                  isAnimating && !willBeFavorite && "animate-[heartBreak_0.4s_ease-out]"
                 )}
               />
               {/* Animated particles when favoriting */}
-              {isAnimating && door.isFavorite && (
+              {isAnimating && willBeFavorite && (
                 <>
                   <div className="absolute inset-0 animate-ping">
                     <Heart className="w-4 h-4 fill-red-400 text-red-400 opacity-75" />
                   </div>
                   <div className="absolute inset-0">
                     <Heart className="w-4 h-4 fill-red-500 text-red-500 animate-[scale-up_0.3s_ease-out]" />
+                  </div>
+                </>
+              )}
+              {/* Animated particles when unfavoriting */}
+              {isAnimating && !willBeFavorite && (
+                <>
+                  <div className="absolute inset-0 animate-[fade-out_0.3s_ease-out]">
+                    <Heart className="w-4 h-4 fill-red-500 text-red-500 opacity-75" />
                   </div>
                 </>
               )}

@@ -135,6 +135,28 @@ export default {
 						transform: 'scale(1)',
 						opacity: '1'
 					}
+				},
+				'heartBreak': {
+					'0%': {
+						transform: 'scale(1)',
+						opacity: '1'
+					},
+					'50%': {
+						transform: 'scale(1.2) rotate(5deg)',
+						opacity: '0.5'
+					},
+					'100%': {
+						transform: 'scale(0.8)',
+						opacity: '0'
+					}
+				},
+				'fade-out': {
+					'0%': {
+						opacity: '1'
+					},
+					'100%': {
+						opacity: '0'
+					}
 				}
 			},
 			animation: {
@@ -142,7 +164,9 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fade-in 0.3s ease-out',
 				'heartBeat': 'heartBeat 0.6s ease-in-out',
-				'scale-up': 'scale-up 0.3s ease-out'
+				'scale-up': 'scale-up 0.3s ease-out',
+				'heartBreak': 'heartBreak 0.4s ease-out',
+				'fade-out': 'fade-out 0.3s ease-out'
 			}
 		}
 	},
