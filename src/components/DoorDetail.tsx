@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Door } from '@/types/door';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -13,6 +14,15 @@ interface DoorDetailProps {
 }
 
 export function DoorDetail({ door, onBack, onToggleFavorite }: DoorDetailProps) {
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  const handleFavoriteClick = () => {
+    setIsAnimating(true);
+    onToggleFavorite(door.id);
+
+    // Reset animation after it completes
+    setTimeout(() => setIsAnimating(false), 600);
+  };
   // Extract postal code from arrondissement (e.g., "2nd — Bourse" -> "75002")
   const getPostalCode = (arrondissement: string): string => {
     const match = arrondissement.match(/^(\d+)/);
@@ -38,15 +48,30 @@ export function DoorDetail({ door, onBack, onToggleFavorite }: DoorDetailProps) 
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onToggleFavorite(door.id)}
-            className="gap-2"
+            onClick={handleFavoriteClick}
+            className="gap-2 relative"
           >
-            <Heart
-              className={cn(
-                "w-4 h-4",
-                door.isFavorite ? "fill-red-500 text-red-500" : "text-muted-foreground"
+            <div className="relative">
+              <Heart
+                className={cn(
+                  "w-4 h-4 transition-all duration-300",
+                  door.isFavorite && "fill-red-500 text-red-500",
+                  !door.isFavorite && "text-muted-foreground",
+                  isAnimating && "animate-[heartBeat_0.6s_ease-in-out]"
+                )}
+              />
+              {/* Animated particles when favoriting */}
+              {isAnimating && door.isFavorite && (
+                <>
+                  <div className="absolute inset-0 animate-ping">
+                    <Heart className="w-4 h-4 fill-red-400 text-red-400 opacity-75" />
+                  </div>
+                  <div className="absolute inset-0">
+                    <Heart className="w-4 h-4 fill-red-500 text-red-500 animate-[scale-up_0.3s_ease-out]" />
+                  </div>
+                </>
               )}
-            />
+            </div>
             {door.isFavorite ? 'Favorited' : 'Favorite'}
           </Button>
         </div>
