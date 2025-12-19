@@ -16,6 +16,7 @@ import { Heart, Plus, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdmin } from '@/hooks/useAdmin';
 
 // Masonry Layout Component
 interface MasonryLayoutProps {
@@ -110,6 +111,7 @@ const MasonryLayout: React.FC<MasonryLayoutProps> = ({
 const Index = () => {
   // Authentication
   const { user, loading: authLoading } = useAuth();
+  const { isAdmin } = useAdmin();
 
   // State management
   const [doors, setDoors] = useState<Door[]>([]);
@@ -582,17 +584,18 @@ const Index = () => {
             onClose={() => setIsAdminOpen(false)}
           />
 
-          {/* Admin button - hidden for beta testing */}
-          {/* Uncomment to enable admin features */}
-          {/* <Button
-            onClick={() => setIsAdminOpen(true)}
-            variant="ghost"
-            size="sm"
-            className="fixed top-4 right-4 z-40 opacity-30 hover:opacity-100 transition-opacity"
-            title="Admin Panel"
-          >
-            <Settings className="w-4 h-4" />
-          </Button> */}
+          {/* Admin button - only visible to admin users */}
+          {isAdmin && (
+            <Button
+              onClick={() => setIsAdminOpen(true)}
+              variant="ghost"
+              size="sm"
+              className="fixed top-4 right-4 z-40 bg-white/80 backdrop-blur-sm border border-stone hover:bg-haussmann hover:text-white transition-all duration-300 shadow-lg"
+              title="Admin Panel"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
+          )}
         </>
       )}
     </>
