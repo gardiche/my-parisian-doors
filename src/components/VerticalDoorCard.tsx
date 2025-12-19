@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Door } from '@/types/door';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,17 @@ export const VerticalDoorCard: React.FC<VerticalDoorCardProps> = ({
   onToggleFavorite,
   onCardClick
 }) => {
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsAnimating(true);
+    onToggleFavorite?.(door.id);
+
+    // Reset animation after it completes
+    setTimeout(() => setIsAnimating(false), 600);
+  };
+
   return (
     <Card
       className="group cursor-pointer transition-all duration-300 hover:shadow-parisian-xl bg-cream/90 backdrop-blur-sm border-stone overflow-hidden animate-fade-in"
@@ -34,18 +45,28 @@ export const VerticalDoorCard: React.FC<VerticalDoorCardProps> = ({
 
         {onToggleFavorite && (
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite(door.id);
-            }}
+            onClick={handleFavoriteClick}
             className="absolute top-3 right-3 p-2 rounded-lg bg-cream/90 backdrop-blur-sm shadow-parisian transition-all duration-200 hover:bg-cream hover:scale-110 opacity-0 group-hover:opacity-100"
           >
             <Heart
               className={cn(
-                "w-4 h-4 transition-colors",
-                door.isFavorite ? "fill-brick text-brick" : "text-charcoal hover:text-brick"
+                "w-4 h-4 transition-all duration-300",
+                door.isFavorite && "fill-red-500 text-red-500",
+                !door.isFavorite && "text-charcoal hover:text-red-400",
+                isAnimating && "animate-[heartBeat_0.6s_ease-in-out]"
               )}
             />
+            {/* Animated particles when favoriting */}
+            {isAnimating && door.isFavorite && (
+              <>
+                <div className="absolute inset-0 animate-ping">
+                  <Heart className="w-4 h-4 fill-red-400 text-red-400 opacity-75" />
+                </div>
+                <div className="absolute inset-0">
+                  <Heart className="w-4 h-4 fill-red-500 text-red-500 animate-[scale-up_0.3s_ease-out]" />
+                </div>
+              </>
+            )}
           </button>
         )}
       </div>
