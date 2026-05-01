@@ -12,7 +12,7 @@ import { SplashScreen } from '@/components/SplashScreen';
 import { SignUp } from '@/components/SignUp';
 import { MyDoors } from '@/components/MyDoors';
 import { VerticalDoorCard } from '@/components/VerticalDoorCard';
-import { Heart, Plus, Settings } from 'lucide-react';
+import { Heart, Plus, Settings, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -127,6 +127,8 @@ const Index = () => {
     return !hasSeenSplash;
   });
   const [showSignUp, setShowSignUp] = useState(false);
+  const [activeNeighborhood, setActiveNeighborhood] = useState<string>('All');
+  const [detailVisible, setDetailVisible] = useState(false);
 
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -246,10 +248,14 @@ const Index = () => {
 
   const handleDoorClick = (door: Door) => {
     setSelectedDoor(door);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setDetailVisible(true));
+    });
   };
 
   const handleBack = () => {
-    setSelectedDoor(null);
+    setDetailVisible(false);
+    setTimeout(() => setSelectedDoor(null), 380);
   };
 
   // Add new door
@@ -303,146 +309,177 @@ const Index = () => {
     setSelectedOrnamentations([]);
   };
 
-  if (selectedDoor) {
-    return (
-      <DoorDetail 
-        door={selectedDoor}
-        onBack={handleBack}
-        onToggleFavorite={toggleFavorite}
-      />
-    );
-  }
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'home':
-        return (
-          <div className="min-h-screen bg-gradient-to-br from-rose-50 via-blue-50 to-amber-50">
-            <div className="sticky top-0 bg-white/95 backdrop-blur-xl border-b border-gray-200/50 z-10 transition-all duration-300">
-              <div className={cn(
-                "px-4 transition-all duration-300",
-                isScrolled ? "py-3" : "py-6"
-              )}>
-                <div className="text-center">
-                  <img 
-                    src="/logo2.svg" 
-                    alt="My Parisian Doors" 
-                    style={{
-                      height: isScrolled ? '64px' : '128px',
-                      marginBottom: isScrolled ? '0' : '16px',
-                      transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
-                    }}
-                    className="w-auto mx-auto"
-                  />
-                  
-                  <div className={cn(
-                    "transition-all duration-300 overflow-hidden",
-                    isScrolled ? "max-h-0 opacity-0" : "max-h-40 opacity-100"
-                  )}>
-                    <p className="text-sm text-gray-500 mt-1 mb-6">
-                      {doors.length} beautiful doors discovered
-                    </p>
+      case 'home': {
+        const hour = new Date().getHours();
+        const greeting = hour < 18 ? 'Bonjour' : 'Bonsoir';
+        const firstName = user?.user_metadata?.full_name?.split(' ')[0]
+          || user?.email?.split('@')[0]
+          || '';
 
-                    <div className="flex justify-center gap-6 text-center">
-                      <div>
-                        <div className="text-lg font-semibold text-blue-600">{doors.length}</div>
-                        <div className="text-xs text-gray-500">Doors</div>
-                      </div>
-                      <div>
-                        <div className="text-lg font-semibold text-rose-600">{favoriteDoors.length}</div>
-                        <div className="text-xs text-gray-500">Favorites</div>
-                      </div>
-                    </div>
-                  </div>
+        // Unique neighborhoods for pills
+        const neighborhoods = ['All', ...Array.from(new Set(doors.map(d => d.neighborhood).filter(Boolean)))];
+
+        const neighborhoodFilteredDoors = activeNeighborhood === 'All'
+          ? filteredDoors
+          : filteredDoors.filter(d => d.neighborhood === activeNeighborhood);
+
+        const neighborhoodsCount = new Set(doors.map(d => d.neighborhood).filter(Boolean)).size;
+
+        return (
+          <div className="min-h-screen bg-cream pb-24">
+            {/* Header */}
+            <div className="px-5 pt-8 pb-4 bg-cream">
+              <div className="flex items-start justify-between mb-5">
+                <div>
+                  <h1 className="font-calligraphy text-6xl font-medium leading-none text-night">
+                    {greeting},
+                  </h1>
+                  <p className="font-calligraphy text-5xl italic text-haussmann leading-tight mt-1">
+                    {firstName}
+                  </p>
                 </div>
+                {/* Avatar */}
+                <button
+                  onClick={() => setActiveTab('mydoors')}
+                  className="w-11 h-11 rounded-full bg-haussmann flex items-center justify-center shadow-parisian flex-shrink-0 mt-1"
+                >
+                  <span className="text-cream font-semibold text-base uppercase">
+                    {firstName?.[0] || '?'}
+                  </span>
+                </button>
+              </div>
+
+              {/* Neighborhood pills */}
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-5 px-5">
+                {neighborhoods.map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setActiveNeighborhood(n)}
+                    className={cn(
+                      "flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200",
+                      activeNeighborhood === n
+                        ? "bg-night text-cream border-night"
+                        : "bg-cream text-charcoal border-stone hover:border-haussmann hover:text-haussmann"
+                    )}
+                  >
+                    {n}
+                  </button>
+                ))}
               </div>
             </div>
 
+            {/* Stats row */}
+            <div className="flex items-center gap-5 px-5 py-3">
+              <span className="text-sm text-night">
+                <span className="font-semibold">{doors.length}</span>
+                <span className="text-charcoal"> doors</span>
+              </span>
+              <span className="w-px h-3.5 bg-stone" />
+              <span className="text-sm text-night">
+                <span className="font-semibold">{neighborhoodsCount}</span>
+                <span className="text-charcoal"> neighborhoods</span>
+              </span>
+              <span className="w-px h-3.5 bg-stone" />
+              <span className="text-sm text-night">
+                <span className="font-semibold">{favoriteDoors.length}</span>
+                <span className="text-charcoal"> saved</span>
+              </span>
+            </div>
+
+            {/* Section title */}
+            <div className="flex items-center justify-between px-5 pt-8 pb-3">
+              <span className="text-xs font-semibold tracking-widest text-charcoal uppercase">Recent Discoveries</span>
+              <button
+                onClick={() => setActiveTab('search')}
+                className="flex items-center gap-1 text-xs text-haussmann font-medium"
+              >
+                See all <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Grid */}
             {isLoading ? (
               <div className="flex justify-center items-center py-20">
-                <div className="text-center">
-                  <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <p className="text-gray-500">Loading doors...</p>
-                </div>
+                <div className="w-10 h-10 border-4 border-haussmann border-t-transparent rounded-full animate-spin" />
               </div>
-            ) : filteredDoors.length > 0 ? (
+            ) : neighborhoodFilteredDoors.length > 0 ? (
               <MasonryLayout
-                doors={filteredDoors}
+                doors={neighborhoodFilteredDoors}
                 onDoorClick={handleDoorClick}
                 onToggleFavorite={toggleFavorite}
               />
             ) : (
               <div className="flex flex-col items-center justify-center py-20 px-8">
-                <div className="w-32 h-32 bg-gradient-to-br from-blue-100 to-rose-100 rounded-full flex items-center justify-center mb-6">
-                  <Plus className="w-16 h-16 text-blue-400" />
+                <div className="w-24 h-24 bg-stone rounded-full flex items-center justify-center mb-5">
+                  <Plus className="w-10 h-10 text-haussmann" />
                 </div>
-                <h2 className="text-xl font-light text-gray-700 mb-2 text-center">
+                <h2 className="text-lg font-display font-light text-night mb-2 text-center">
                   Start Your Collection
                 </h2>
-                <p className="text-gray-500 text-center mb-8 max-w-sm leading-relaxed">
-                  Discover and capture the most beautiful doors of Paris. Each door tells a unique story.
+                <p className="text-charcoal text-sm text-center mb-6 max-w-xs leading-relaxed">
+                  Discover and capture the most beautiful doors of Paris.
                 </p>
-                <Button 
+                <Button
                   onClick={() => setIsAddDoorOpen(true)}
-                  className="bg-gradient-to-r from-blue-500 to-rose-500 hover:from-blue-600 hover:to-rose-600 text-white px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="bg-haussmann hover:bg-haussmann/90 text-cream px-7 py-2.5 rounded-full shadow-parisian transition-all duration-300"
                 >
-                  <Plus className="w-5 h-5 mr-2" />
+                  <Plus className="w-4 h-4 mr-2" />
                   Add Your First Door
                 </Button>
               </div>
             )}
           </div>
         );
+      }
 
       case 'search':
         return (
-          <div className="min-h-screen bg-gradient-to-br from-background via-sage/10 to-gold/20 pb-20">
-            <div className="sticky top-0 bg-background/95 backdrop-blur-lg border-b border-border/50 z-10 p-4">
-              <div className="max-w-md mx-auto">
-                <h1 className="text-2xl font-bold text-foreground mb-4">Search Doors</h1>
-                
-                <SearchFilter
-                  searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  selectedMaterials={selectedMaterials}
-                  selectedColors={selectedColors}
-                  selectedStyles={selectedStyles}
-                  selectedArrondissements={selectedArrondissements}
-                  selectedOrnamentations={selectedOrnamentations}
-                  onMaterialToggle={toggleMaterial}
-                  onColorToggle={toggleColor}
-                  onStyleToggle={toggleStyle}
-                  onArrondissementToggle={toggleArrondissement}
-                  onOrnamentationToggle={toggleOrnamentation}
-                  onClearFilters={clearFilters}
-                />
-              </div>
+          <div className="min-h-screen bg-cream pb-24">
+            {/* Header */}
+            <div className="px-5 pt-8 pb-5">
+              <h1 className="font-calligraphy text-5xl font-medium text-night mb-5">Discover</h1>
+              <SearchFilter
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                selectedMaterials={selectedMaterials}
+                selectedColors={selectedColors}
+                selectedStyles={selectedStyles}
+                selectedArrondissements={selectedArrondissements}
+                selectedOrnamentations={selectedOrnamentations}
+                onMaterialToggle={toggleMaterial}
+                onColorToggle={toggleColor}
+                onStyleToggle={toggleStyle}
+                onArrondissementToggle={toggleArrondissement}
+                onOrnamentationToggle={toggleOrnamentation}
+                onClearFilters={clearFilters}
+              />
             </div>
 
-            <div className="p-4">
-              <div className="max-w-md mx-auto">
-                <div className="mb-4">
-                  <p className="text-sm text-muted-foreground">
-                    {filteredDoors.length} door{filteredDoors.length !== 1 ? 's' : ''} found
-                  </p>
-                </div>
-
-                {filteredDoors.length > 0 ? (
-                  <MasonryLayout
-                    doors={filteredDoors}
-                    onDoorClick={handleDoorClick}
-                    onToggleFavorite={toggleFavorite}
-                  />
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground">No doors found matching your search</p>
-                    <Button variant="outline" onClick={clearFilters} className="mt-4">
-                      Clear all filters
-                    </Button>
-                  </div>
-                )}
-              </div>
+            {/* Results count */}
+            <div className="px-5 py-3 border-t border-stone">
+              <p className="text-xs font-semibold tracking-widest text-charcoal uppercase">
+                {filteredDoors.length} door{filteredDoors.length !== 1 ? 's' : ''} found
+              </p>
             </div>
+
+            {/* Grid */}
+            {filteredDoors.length > 0 ? (
+              <MasonryLayout
+                doors={filteredDoors}
+                onDoorClick={handleDoorClick}
+                onToggleFavorite={toggleFavorite}
+              />
+            ) : (
+              <div className="text-center py-16 px-8">
+                <p className="text-charcoal mb-4">No doors match your search</p>
+                <button onClick={clearFilters} className="text-sm text-haussmann underline underline-offset-4">
+                  Clear all filters
+                </button>
+              </div>
+            )}
           </div>
         );
 
@@ -469,43 +506,36 @@ const Index = () => {
 
       case 'favorites':
         return (
-          <div className="min-h-screen bg-gradient-to-br from-rose-50 via-blue-50 to-amber-50 pb-20">
-            <div className="sticky top-0 bg-white/95 backdrop-blur-lg border-b border-gray-200/50 z-10 p-4">
-              <div className="max-w-md mx-auto">
-                <div className="flex items-center gap-2 mb-2">
-                  <Heart className="w-6 h-6 text-red-500 fill-current" />
-                  <h1 className="text-2xl font-light text-gray-800">Favorites</h1>
-                </div>
-                <p className="text-gray-500 text-sm">
-                  {favoriteDoors.length} favorite door{favoriteDoors.length !== 1 ? 's' : ''}
-                </p>
-              </div>
+          <div className="min-h-screen bg-cream pb-24">
+            <div className="px-5 pt-8 pb-5">
+              <p className="text-[10px] font-semibold tracking-widest text-charcoal uppercase mb-2">Your Collection</p>
+              <h1 className="font-calligraphy text-5xl font-medium text-night mb-1">Saved Doors</h1>
+              <p className="text-sm text-charcoal">
+                {favoriteDoors.length} door{favoriteDoors.length !== 1 ? 's' : ''} in your collection
+              </p>
             </div>
 
-            <div className="px-4">
-              {favoriteDoors.length > 0 ? (
-                <MasonryLayout
-                  doors={favoriteDoors}
-                  onDoorClick={handleDoorClick}
-                  onToggleFavorite={toggleFavorite}
-                />
-              ) : (
-                <div className="text-center py-20">
-                  <Heart className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                  <p className="text-gray-500 mb-2">No favorite doors yet</p>
-                  <p className="text-sm text-gray-400 mb-6">
-                    Tap the heart on any door to save it here
-                  </p>
-                  <Button
-                    onClick={() => setActiveTab('home')}
-                    variant="outline"
-                    className="text-gray-600"
-                  >
-                    Explore Doors
-                  </Button>
-                </div>
-              )}
-            </div>
+            {favoriteDoors.length > 0 ? (
+              <MasonryLayout
+                doors={favoriteDoors}
+                onDoorClick={handleDoorClick}
+                onToggleFavorite={toggleFavorite}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 px-8">
+                <Heart className="w-12 h-12 text-stone mb-4" />
+                <p className="text-night font-medium mb-1">No saved doors yet</p>
+                <p className="text-sm text-charcoal text-center mb-6">
+                  Tap the heart on any door to save it here
+                </p>
+                <button
+                  onClick={() => setActiveTab('home')}
+                  className="text-sm text-haussmann underline underline-offset-4"
+                >
+                  Explore doors
+                </button>
+              </div>
+            )}
           </div>
         );
 
@@ -545,7 +575,41 @@ const Index = () => {
       {/* Main app content - only accessible when authenticated */}
       {!showSplash && !showSignUp && !authLoading && user && (
         <>
-          {renderContent()}
+          {/* Screen container */}
+          <div className="relative overflow-hidden">
+            {/* Home screen — recule à gauche quand le détail est visible */}
+            <div
+              style={{
+                transform: detailVisible ? 'translateX(-30%)' : 'translateX(0)',
+                transition: 'transform 0.38s cubic-bezier(0.4, 0, 0.2, 1)',
+                willChange: 'transform',
+              }}
+            >
+              {renderContent()}
+            </div>
+
+            {/* Detail screen — monte depuis le bas */}
+            {selectedDoor && (
+              <div
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  transform: detailVisible ? 'translateY(0)' : 'translateY(100%)',
+                  transition: 'transform 0.38s cubic-bezier(0.4, 0, 0.2, 1)',
+                  willChange: 'transform',
+                  zIndex: 50,
+                  overflowY: 'auto',
+                  backgroundColor: '#FAF7F2',
+                }}
+              >
+                <DoorDetail
+                  door={selectedDoor}
+                  onBack={handleBack}
+                  onToggleFavorite={toggleFavorite}
+                />
+              </div>
+            )}
+          </div>
 
           <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
 

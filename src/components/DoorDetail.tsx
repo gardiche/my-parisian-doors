@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Door } from '@/types/door';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Heart, MapPin, Palette, Hammer, Sparkles } from 'lucide-react';
+import { ArrowLeft, Heart, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getTagColor } from '@/lib/tagColors';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DoorDetailProps {
   door: Door;
@@ -13,141 +12,187 @@ interface DoorDetailProps {
   onToggleFavorite: (id: string) => void;
 }
 
+const COLOR_HEX: Record<string, string> = {
+  Green: '#A8C3A1',
+  Blue: '#A9C3D1',
+  Black: '#3A3A3A',
+  White: '#F3EDE7',
+  Cream: '#F0DCC2',
+  Brown: '#C9A689',
+  Red: '#E7A9A1',
+  Gray: '#D5D5D5',
+};
+
 export function DoorDetail({ door, onBack, onToggleFavorite }: DoorDetailProps) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [willBeFavorite, setWillBeFavorite] = useState(door.isFavorite);
+  const { user } = useAuth();
 
   const handleFavoriteClick = () => {
     const newState = !door.isFavorite;
     setWillBeFavorite(newState);
     setIsAnimating(true);
     onToggleFavorite(door.id);
-
-    // Reset animation after it completes
     setTimeout(() => setIsAnimating(false), 600);
   };
-  // Extract postal code from arrondissement (e.g., "2nd — Bourse" -> "75002")
-  const getPostalCode = (arrondissement: string): string => {
+
+  const getPostalCode = (arrondissement?: string): string => {
+    if (!arrondissement) return '';
     const match = arrondissement.match(/^(\d+)/);
-    if (match) {
-      const num = match[1].padStart(2, '0');
-      return `750${num}`;
-    }
+    if (match) return `${match[1]}TH`;
     return '';
   };
 
   const postalCode = getPostalCode(door.arrondissement);
-  const fullAddress = postalCode ? `${door.location}, ${postalCode} Paris` : door.location;
+  const addedByName = door.addedBy === 'preset' ? 'Paris Collection' : (user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Anonymous');
+  const addedByInitial = addedByName[0]?.toUpperCase() || '?';
+
+  const formattedDate = door.dateAdded
+    ? new Date(door.dateAdded).toISOString().split('T')[0]
+    : '—';
+
+  const colorSwatch = COLOR_HEX[door.color] || '#D5D5D5';
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="sticky top-0 bg-background/95 backdrop-blur-lg border-b border-border z-10 p-4">
+    <div className="min-h-screen bg-cream pb-24">
+      {/* Hero Image */}
+      <div className="relative w-full overflow-hidden">
+        <img
+          src={door.imageUrl}
+          alt={`Door at ${door.location}`}
+          className="w-full object-contain"
+        />
+        {/* Dark gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+        {/* Back button */}
+        <button
+          onClick={onBack}
+          className="absolute top-4 left-4 w-9 h-9 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center"
+        >
+          <ArrowLeft className="w-4 h-4 text-white" />
+        </button>
+
+        {/* Text overlay on image */}
+        <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
+          {(postalCode || door.style) && (
+            <p className="text-white/70 text-xs font-medium tracking-widest uppercase mb-1">
+              {[postalCode, door.style?.toUpperCase()].filter(Boolean).join(' · ')}
+            </p>
+          )}
+          <h1 className="font-calligraphy text-3xl font-semibold text-white leading-tight mb-2">
+            {door.location}
+          </h1>
+          <div className="flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 text-white/70" />
+            <span className="text-white/80 text-sm">{door.neighborhood}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-5 pt-5 space-y-5">
+
+        {/* Added by row */}
         <div className="flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={onBack} className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-haussmann flex items-center justify-center">
+              <span className="text-cream text-xs font-semibold">{addedByInitial}</span>
+            </div>
+            <span className="text-sm text-charcoal">
+              Added by <span className="font-semibold text-night">{addedByName}</span>
+            </span>
+          </div>
+          <button
             onClick={handleFavoriteClick}
-            className="gap-2 relative"
+            className="flex items-center gap-1.5 group"
           >
             <div className="relative">
               <Heart
                 className={cn(
-                  "w-4 h-4 transition-all duration-300",
-                  door.isFavorite && "fill-red-500 text-red-500",
-                  !door.isFavorite && "text-muted-foreground",
+                  "w-5 h-5 transition-all duration-300",
+                  door.isFavorite ? "fill-red-500 text-red-500" : "text-charcoal group-hover:text-red-400",
                   isAnimating && willBeFavorite && "animate-[heartBeat_0.6s_ease-in-out]",
                   isAnimating && !willBeFavorite && "animate-[heartBreak_0.4s_ease-out]"
                 )}
               />
-              {/* Animated particles when favoriting */}
               {isAnimating && willBeFavorite && (
-                <>
-                  <div className="absolute inset-0 animate-ping">
-                    <Heart className="w-4 h-4 fill-red-400 text-red-400 opacity-75" />
-                  </div>
-                  <div className="absolute inset-0">
-                    <Heart className="w-4 h-4 fill-red-500 text-red-500 animate-[scale-up_0.3s_ease-out]" />
-                  </div>
-                </>
-              )}
-              {/* Animated particles when unfavoriting */}
-              {isAnimating && !willBeFavorite && (
-                <>
-                  <div className="absolute inset-0 animate-[fade-out_0.3s_ease-out]">
-                    <Heart className="w-4 h-4 fill-red-500 text-red-500 opacity-75" />
-                  </div>
-                </>
+                <div className="absolute inset-0 animate-ping">
+                  <Heart className="w-5 h-5 fill-red-400 text-red-400 opacity-75" />
+                </div>
               )}
             </div>
-            {door.isFavorite ? 'Favorited' : 'Favorite'}
-          </Button>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="pb-20">
-        {/* Hero Image */}
-        <div className="relative aspect-[4/5] max-h-[70vh] overflow-hidden">
-          <img 
-            src={door.imageUrl} 
-            alt={`Door at ${door.location}`}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+          </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Location */}
-          <div>
-            <div className="flex items-center gap-2 text-muted-foreground mb-2">
-              <MapPin className="w-4 h-4" />
-              <span className="text-sm font-medium">{door.neighborhood}</span>
-            </div>
-            <h1 className="text-2xl font-bold text-foreground">{fullAddress}</h1>
+        {/* Separator */}
+        <div className="h-px bg-stone" />
+
+        {/* Description */}
+        {door.description && (
+          <p className="text-charcoal text-sm leading-relaxed">
+            {door.description}
+          </p>
+        )}
+
+        {/* Separator */}
+        <div className="h-px bg-stone" />
+
+        {/* Details grid */}
+        <div>
+          <p className="text-[10px] font-semibold tracking-widest text-charcoal uppercase mb-3">Details</p>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: 'MATERIAL', value: door.material },
+              { label: 'COLOR', value: door.color },
+              { label: 'STYLE', value: door.style },
+              { label: 'ADDED', value: formattedDate },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-white rounded-xl border border-stone p-3">
+                <p className="text-[9px] font-semibold tracking-widest text-charcoal uppercase mb-1">{label}</p>
+                <p className="text-sm font-medium text-night">{value}</p>
+              </div>
+            ))}
           </div>
-
-          {/* Properties */}
-          <Card className="p-4">
-            <h2 className="font-semibold mb-4 flex items-center gap-2">
-              <Sparkles className="w-4 h-4" />
-              Door Details
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Hammer className="w-4 h-4" />
-                  Material
-                </div>
-                <Badge customColor={getTagColor('material', door.material)}>{door.material}</Badge>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Palette className="w-4 h-4" />
-                  Color
-                </div>
-                <Badge customColor={getTagColor('color', door.color)}>{door.color}</Badge>
-              </div>
-              <div className="space-y-2 col-span-2">
-                <div className="text-sm text-muted-foreground">Style</div>
-                <Badge customColor={getTagColor('style', door.style)}>{door.style}</Badge>
-              </div>
-            </div>
-          </Card>
-
-          {/* Description */}
-          {door.description && (
-            <Card className="p-4">
-              <h2 className="font-semibold mb-3">Description</h2>
-              <p className="text-muted-foreground leading-relaxed">{door.description}</p>
-            </Card>
-          )}
         </div>
+
+        {/* Ornamentations */}
+        {door.ornamentations && door.ornamentations.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold tracking-widest text-charcoal uppercase mb-3">Ornamentations</p>
+            <div className="flex flex-wrap gap-2">
+              {door.ornamentations.map((o) => (
+                <span
+                  key={o}
+                  className="px-3 py-1.5 rounded-full border border-stone bg-white text-sm text-night"
+                >
+                  {o}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Color swatch */}
+        <div className="flex items-center justify-between bg-white rounded-xl border border-stone px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-lg shadow-parisian"
+              style={{ backgroundColor: colorSwatch }}
+            />
+            <div>
+              <p className="text-sm font-medium text-night">{door.color}</p>
+              <p className="text-xs text-charcoal">Door color</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {}}
+            className="text-xs font-medium text-haussmann"
+          >
+            Find similar →
+          </button>
+        </div>
+
       </div>
     </div>
   );

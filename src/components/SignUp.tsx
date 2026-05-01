@@ -118,7 +118,7 @@ export function SignUp({ onComplete }: SignUpProps) {
           {/* Logo and Welcome */}
           <div className="text-center mb-3 animate-in fade-in duration-700">
             <img
-              src="/logo2.svg"
+              src="/logo.svg"
               alt="My Parisian Doors"
               className="h-20 w-auto mx-auto mb-3"
             />

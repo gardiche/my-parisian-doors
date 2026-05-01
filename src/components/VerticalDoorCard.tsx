@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getTagColor } from '@/lib/tagColors';
+import { useUserLocation, formatDistance } from '@/hooks/useUserLocation';
 
 interface VerticalDoorCardProps {
   door: Door;
@@ -19,6 +20,11 @@ export const VerticalDoorCard: React.FC<VerticalDoorCardProps> = ({
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [willBeFavorite, setWillBeFavorite] = useState(door.isFavorite);
+  const userLocation = useUserLocation();
+
+  const distance = userLocation && door.coordinates
+    ? formatDistance(userLocation.lat, userLocation.lng, door.coordinates.lat, door.coordinates.lng)
+    : null;
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -46,38 +52,36 @@ export const VerticalDoorCard: React.FC<VerticalDoorCardProps> = ({
 
         <div className="absolute inset-0 bg-gradient-to-t from-night/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
+        {/* Distance — top left */}
+        {distance && (
+          <div className="absolute top-2.5 left-2.5 bg-haussmann/40 backdrop-blur-md rounded-full px-2 py-0.5 border border-white/20">
+            <span className="text-[10px] font-medium text-white">{distance}</span>
+          </div>
+        )}
+
+        {/* Like button — top right, always visible */}
         {onToggleFavorite && (
           <button
             onClick={handleFavoriteClick}
-            className="absolute top-3 right-3 p-2 rounded-lg bg-cream/90 backdrop-blur-sm shadow-parisian transition-all duration-200 hover:bg-cream hover:scale-110 opacity-0 group-hover:opacity-100"
+            className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center transition-transform duration-200 active:scale-90 border border-white/30"
+            style={{
+              background: 'rgba(255, 255, 255, 0.25)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+            }}
           >
             <Heart
               className={cn(
-                "w-4 h-4 transition-all duration-300",
-                door.isFavorite && "fill-red-500 text-red-500",
-                !door.isFavorite && "text-charcoal hover:text-red-400",
+                "w-3.5 h-3.5 transition-all duration-300",
+                door.isFavorite
+                  ? "fill-red-500 text-red-500"
+                  : "text-white",
                 isAnimating && willBeFavorite && "animate-[heartBeat_0.6s_ease-in-out]",
                 isAnimating && !willBeFavorite && "animate-[heartBreak_0.4s_ease-out]"
               )}
             />
-            {/* Animated particles when favoriting */}
             {isAnimating && willBeFavorite && (
-              <>
-                <div className="absolute inset-0 animate-ping">
-                  <Heart className="w-4 h-4 fill-red-400 text-red-400 opacity-75" />
-                </div>
-                <div className="absolute inset-0">
-                  <Heart className="w-4 h-4 fill-red-500 text-red-500 animate-[scale-up_0.3s_ease-out]" />
-                </div>
-              </>
-            )}
-            {/* Animated particles when unfavoriting */}
-            {isAnimating && !willBeFavorite && (
-              <>
-                <div className="absolute inset-0 animate-[fade-out_0.3s_ease-out]">
-                  <Heart className="w-4 h-4 fill-red-500 text-red-500 opacity-75" />
-                </div>
-              </>
+              <div className="absolute inset-0 rounded-full animate-ping bg-red-200/40" />
             )}
           </button>
         )}

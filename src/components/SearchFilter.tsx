@@ -1,15 +1,7 @@
-// src/components/SearchFilter.tsx
-import { Search, Filter, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Separator } from '@/components/ui/separator';
+import { useState } from 'react';
+import { Search, ChevronDown } from 'lucide-react';
 import { DoorMaterial, DoorColor, DoorStyle, DoorArrondissement, DoorOrnamentation } from '@/types/door';
+import { cn } from '@/lib/utils';
 
 interface SearchFilterProps {
   searchTerm: string;
@@ -31,28 +23,61 @@ const materials: DoorMaterial[] = ['Wood', 'Metal', 'Glass', 'Stone', 'Composite
 const colors: DoorColor[] = ['Green', 'Blue', 'Black', 'White', 'Cream', 'Brown', 'Red', 'Gray'];
 const styles: DoorStyle[] = ['Haussmann', 'Art Nouveau', 'Modern', 'Vintage', 'Industrial', 'Classic'];
 const arrondissements: DoorArrondissement[] = [
-  '1st — Louvre',
-  '2nd — Bourse',
-  '3rd — Le Marais (Temple)',
-  '4th — Hôtel-de-Ville (Le Marais, Île Saint-Louis)',
-  '5th — Panthéon (Quartier Latin)',
-  '6th — Luxembourg (Saint-Germain-des-Prés)',
-  '7th — Palais-Bourbon (Tour Eiffel, Invalides)',
-  '8th — Élysée (Champs-Élysées, Madeleine)',
-  '9th — Opéra (Pigalle Sud)',
-  '10th — Entrepôt (Canal Saint-Martin)',
-  '11th — Popincourt (Oberkampf, Bastille)',
-  '12th — Reuilly (Bercy, Daumesnil)',
-  '13th — Gobelins (Butte-aux-Cailles, Chinatown)',
-  '14th — Observatoire (Montparnasse)',
-  '15th — Vaugirard',
-  '16th — Passy (Trocadéro, Auteuil)',
-  '17th — Batignolles-Monceau',
-  '18th — Montmartre (Butte-Montmartre)',
-  '19th — Buttes-Chaumont (La Villette)',
+  '1st — Louvre', '2nd — Bourse', '3rd — Le Marais (Temple)',
+  '4th — Hôtel-de-Ville (Le Marais, Île Saint-Louis)', '5th — Panthéon (Quartier Latin)',
+  '6th — Luxembourg (Saint-Germain-des-Prés)', '7th — Palais-Bourbon (Tour Eiffel, Invalides)',
+  '8th — Élysée (Champs-Élysées, Madeleine)', '9th — Opéra (Pigalle Sud)',
+  '10th — Entrepôt (Canal Saint-Martin)', '11th — Popincourt (Oberkampf, Bastille)',
+  '12th — Reuilly (Bercy, Daumesnil)', '13th — Gobelins (Butte-aux-Cailles, Chinatown)',
+  '14th — Observatoire (Montparnasse)', '15th — Vaugirard',
+  '16th — Passy (Trocadéro, Auteuil)', '17th — Batignolles-Monceau',
+  '18th — Montmartre (Butte-Montmartre)', '19th — Buttes-Chaumont (La Villette)',
   '20th — Ménilmontant (Belleville, Père-Lachaise)'
 ];
-const ornamentations: DoorOrnamentation[] = ['Ironwork', 'Stained Glass', 'Wood Carving', 'Columns', 'Pediment', 'Door Knocker', 'Moldings', 'Flowers'];
+const ornamentations: DoorOrnamentation[] = ['Ironwork', 'Stained Glass', 'Wood Carving', 'Columns', 'Pediment', 'Door Knocker', 'Moldings', 'Flowers', 'Golden Details'];
+
+interface FilterSectionProps {
+  label: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  activeCount: number;
+  children: React.ReactNode;
+}
+
+function FilterSection({ label, isOpen, onToggle, activeCount, children }: FilterSectionProps) {
+  return (
+    <div className="border-b border-stone">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between py-4 px-5"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold tracking-widest text-charcoal uppercase">{label}</span>
+          {activeCount > 0 && (
+            <span className="w-4 h-4 rounded-full bg-haussmann text-cream text-[9px] font-bold flex items-center justify-center">
+              {activeCount}
+            </span>
+          )}
+        </div>
+        <ChevronDown
+          className={cn(
+            'w-4 h-4 text-charcoal transition-transform duration-200',
+            isOpen && 'rotate-180'
+          )}
+        />
+      </button>
+
+      <div className={cn(
+        'overflow-hidden transition-all duration-300',
+        isOpen ? 'max-h-96 pb-4' : 'max-h-0'
+      )}>
+        <div className="px-5">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function SearchFilter({
   searchTerm,
@@ -67,201 +92,78 @@ export function SearchFilter({
   onStyleToggle,
   onArrondissementToggle,
   onOrnamentationToggle,
-  onClearFilters
+  onClearFilters,
 }: SearchFilterProps) {
-  const hasActiveFilters = selectedMaterials.length > 0 || selectedColors.length > 0 || selectedStyles.length > 0 || selectedArrondissements.length > 0 || selectedOrnamentations.length > 0;
+  const [openSection, setOpenSection] = useState<string | null>(null);
+
+  const toggle = (section: string) =>
+    setOpenSection(prev => prev === section ? null : section);
+
+  const pillClass = (active: boolean) => cn(
+    'px-3 py-1.5 rounded-full text-sm border transition-all duration-150 cursor-pointer',
+    active
+      ? 'bg-night text-cream border-night'
+      : 'bg-cream text-charcoal border-stone hover:border-haussmann hover:text-haussmann'
+  );
 
   return (
-    <div className="space-y-4">
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-        <Input
-          placeholder="Search by location or neighborhood..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10 bg-background/50 backdrop-blur-sm border-border/50"
-        />
+    <div>
+      {/* Search bar */}
+      <div className="px-5 pb-4">
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-charcoal/50" />
+          <input
+            type="text"
+            placeholder="Search by street, style, color..."
+            value={searchTerm}
+            onChange={e => onSearchChange(e.target.value)}
+            className="w-full bg-white border border-stone rounded-full pl-10 pr-4 py-2.5 text-sm text-night placeholder:text-charcoal/50 focus:outline-none focus:border-haussmann transition-colors"
+          />
+        </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Filter className="w-4 h-4" />
-              Filters
-              {hasActiveFilters && (
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                  {selectedMaterials.length + selectedColors.length + selectedStyles.length + selectedArrondissements.length + selectedOrnamentations.length}
-                </Badge>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-96 p-4 max-h-96 overflow-y-auto" align="start">
-            <div className="space-y-4">
-              {/* Materials */}
-              <div>
-                <h4 className="font-medium mb-2">Material</h4>
-                <div className="flex flex-wrap gap-2">
-                  {materials.map((material) => (
-                    <Badge
-                      key={material}
-                      variant={selectedMaterials.includes(material) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => onMaterialToggle(material)}
-                    >
-                      {material}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+      {/* Filter sections */}
+      <FilterSection label="Style" isOpen={openSection === 'style'} onToggle={() => toggle('style')} activeCount={selectedStyles.length}>
+        <div className="flex flex-wrap gap-2">
+          {styles.map(s => (
+            <button key={s} onClick={() => onStyleToggle(s)} className={pillClass(selectedStyles.includes(s))}>{s}</button>
+          ))}
+        </div>
+      </FilterSection>
 
-              <Separator />
+      <FilterSection label="Material" isOpen={openSection === 'material'} onToggle={() => toggle('material')} activeCount={selectedMaterials.length}>
+        <div className="flex flex-wrap gap-2">
+          {materials.map(m => (
+            <button key={m} onClick={() => onMaterialToggle(m)} className={pillClass(selectedMaterials.includes(m))}>{m}</button>
+          ))}
+        </div>
+      </FilterSection>
 
-              {/* Colors */}
-              <div>
-                <h4 className="font-medium mb-2">Color</h4>
-                <div className="flex flex-wrap gap-2">
-                  {colors.map((color) => (
-                    <Badge
-                      key={color}
-                      variant={selectedColors.includes(color) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => onColorToggle(color)}
-                    >
-                      {color}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+      <FilterSection label="Color" isOpen={openSection === 'color'} onToggle={() => toggle('color')} activeCount={selectedColors.length}>
+        <div className="flex flex-wrap gap-2">
+          {colors.map(c => (
+            <button key={c} onClick={() => onColorToggle(c)} className={pillClass(selectedColors.includes(c))}>{c}</button>
+          ))}
+        </div>
+      </FilterSection>
 
-              <Separator />
+      <FilterSection label="Arrondissement" isOpen={openSection === 'arrondissement'} onToggle={() => toggle('arrondissement')} activeCount={selectedArrondissements.length}>
+        <div className="flex flex-wrap gap-2">
+          {arrondissements.map(a => (
+            <button key={a} onClick={() => onArrondissementToggle(a)} className={pillClass(selectedArrondissements.includes(a))}>
+              {a.match(/^(\d+)/)?.[1] + 'e'}
+            </button>
+          ))}
+        </div>
+      </FilterSection>
 
-              {/* Styles */}
-              <div>
-                <h4 className="font-medium mb-2">Style</h4>
-                <div className="flex flex-wrap gap-2">
-                  {styles.map((style) => (
-                    <Badge
-                      key={style}
-                      variant={selectedStyles.includes(style) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => onStyleToggle(style)}
-                    >
-                      {style}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Arrondissements */}
-              <div>
-                <h4 className="font-medium mb-2">Arrondissement</h4>
-                <div className="grid grid-cols-4 gap-2">
-                  {arrondissements.map((arr) => (
-                    <Badge
-                      key={arr}
-                      variant={selectedArrondissements.includes(arr) ? "default" : "outline"}
-                      className="cursor-pointer text-center justify-center"
-                      onClick={() => onArrondissementToggle(arr)}
-                    >
-                      {arr}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Ornamentations */}
-              <div>
-                <h4 className="font-medium mb-2">Ornamentation</h4>
-                <div className="flex flex-wrap gap-2">
-                  {ornamentations.map((ornamentation) => (
-                    <Badge
-                      key={ornamentation}
-                      variant={selectedOrnamentations.includes(ornamentation) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => onOrnamentationToggle(ornamentation)}
-                    >
-                      {ornamentation}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {hasActiveFilters && (
-                <>
-                  <Separator />
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={onClearFilters}
-                    className="w-full gap-2"
-                  >
-                    <X className="w-4 h-4" />
-                    Clear Filters
-                  </Button>
-                </>
-              )}
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        {/* Active Filters */}
-        {hasActiveFilters && (
-          <div className="flex flex-wrap gap-2">
-            {selectedMaterials.map((material) => (
-              <Badge key={`material-${material}`} variant="secondary" className="gap-1">
-                {material}
-                <X 
-                  className="w-3 h-3 cursor-pointer" 
-                  onClick={() => onMaterialToggle(material)}
-                />
-              </Badge>
-            ))}
-            {selectedColors.map((color) => (
-              <Badge key={`color-${color}`} variant="secondary" className="gap-1">
-                {color}
-                <X 
-                  className="w-3 h-3 cursor-pointer" 
-                  onClick={() => onColorToggle(color)}
-                />
-              </Badge>
-            ))}
-            {selectedStyles.map((style) => (
-              <Badge key={`style-${style}`} variant="secondary" className="gap-1">
-                {style}
-                <X 
-                  className="w-3 h-3 cursor-pointer" 
-                  onClick={() => onStyleToggle(style)}
-                />
-              </Badge>
-            ))}
-            {selectedArrondissements.map((arr) => (
-              <Badge key={`arr-${arr}`} variant="secondary" className="gap-1">
-                {arr}
-                <X 
-                  className="w-3 h-3 cursor-pointer" 
-                  onClick={() => onArrondissementToggle(arr)}
-                />
-              </Badge>
-            ))}
-            {selectedOrnamentations.map((ornamentation) => (
-              <Badge key={`ornamentation-${ornamentation}`} variant="secondary" className="gap-1">
-                {ornamentation}
-                <X 
-                  className="w-3 h-3 cursor-pointer" 
-                  onClick={() => onOrnamentationToggle(ornamentation)}
-                />
-              </Badge>
-            ))}
-          </div>
-        )}
-      </div>
+      <FilterSection label="Ornamentation" isOpen={openSection === 'ornamentation'} onToggle={() => toggle('ornamentation')} activeCount={selectedOrnamentations.length}>
+        <div className="flex flex-wrap gap-2">
+          {ornamentations.map(o => (
+            <button key={o} onClick={() => onOrnamentationToggle(o)} className={pillClass(selectedOrnamentations.includes(o))}>{o}</button>
+          ))}
+        </div>
+      </FilterSection>
     </div>
   );
 }

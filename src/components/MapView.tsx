@@ -1,38 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Door, DoorMaterial, DoorColor, DoorStyle, DoorArrondissement, DoorOrnamentation } from '@/types/door';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { MapPin, Navigation, ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
+import { Navigation, ZoomIn, ZoomOut, Loader2, Search, SlidersHorizontal, X } from 'lucide-react';
 import { SearchFilter } from '@/components/SearchFilter';
-import { cn } from '@/lib/utils';
 import * as turf from '@turf/turf';
-
-// Get color hex value from door color name
-const getDoorColorHex = (color: string): string => {
-  const colorMap: Record<string, string> = {
-    'Green': '#2d5016',
-    'Blue': '#1e3a5f',
-    'Black': '#1a1a1a',
-    'White': '#f5f5f5',
-    'Cream': '#f5e6d3',
-    'Brown': '#4a2511',
-    'Red': '#8b1e1e',
-    'Gray': '#6b7280'
-  };
-  return colorMap[color] || '#4a2511';
-};
-
-// Generate Parisian door icon using uploaded SVG files
-const generateParisianDoorIcon = (doorColor: string): string => {
-  // Map door colors to lowercase for filename
-  const colorFileName = doorColor.toLowerCase().replace('/', '-');
-  
-  return `
-    <div class="w-8 h-10 flex items-center justify-center">
-      <img src="/door-${colorFileName}.svg" alt="${doorColor} door" style="width: 24px; height: 32px;" />
-    </div>
-  `;
-};
 
 interface MapViewProps {
   doors: Door[];
@@ -62,25 +32,55 @@ const PARIS_NEIGHBORHOODS = {
   "Bastille": [48.8532, 2.3682] as [number, number],
   "Opéra": [48.871, 2.3317] as [number, number],
   "Pigalle": [48.8826, 2.3379] as [number, number],
-  "Belleville": [48.8719, 2.3776] as [number, number]
+  "Belleville": [48.8719, 2.3776] as [number, number],
 };
+
+const DOOR_COLOR_HEX: Record<string, string> = {
+  Green:  '#5C8A52',
+  Blue:   '#4A7FA5',
+  Black:  '#2A2A2A',
+  White:  '#B0A898',
+  Cream:  '#C4A882',
+  Brown:  '#8B5E3C',
+  Red:    '#B84040',
+  Gray:   '#7A7A7A',
+};
+
+const AROUND_ME_RADIUS_KM = 1;
 
 const getDoorCoordinates = (door: Door): [number, number] => {
-  // Use real GPS coordinates if available
-  if (door.coordinates && door.coordinates.lat && door.coordinates.lng) {
+  if (door.coordinates?.lat && door.coordinates?.lng) {
     return [door.coordinates.lat, door.coordinates.lng];
   }
-
-  // Fallback to approximate neighborhood coordinates
-  const baseCoords = PARIS_NEIGHBORHOODS[door.neighborhood as keyof typeof PARIS_NEIGHBORHOODS] || [48.8566, 2.3522];
+  const base = PARIS_NEIGHBORHOODS[door.neighborhood as keyof typeof PARIS_NEIGHBORHOODS] || [48.8566, 2.3522];
   const offset = 0.003;
-  const lat = baseCoords[0] + (Math.random() - 0.5) * offset;
-  const lng = baseCoords[1] + (Math.random() - 0.5) * offset;
-  return [lat, lng];
+  return [base[0] + (Math.random() - 0.5) * offset, base[1] + (Math.random() - 0.5) * offset];
 };
 
-export function MapView({ 
-  doors, 
+const makeMarkerHtml = (door: Door, colorFilterActive: boolean): string => {
+  const color = colorFilterActive ? (DOOR_COLOR_HEX[door.color] || '#2E4A62') : '#2E4A62';
+  return `
+    <div style="
+      width:32px;height:32px;
+      background:${color};
+      border:2.5px solid white;
+      border-radius:50%;
+      box-shadow:0 2px 8px rgba(0,0,0,0.25);
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;
+    ">
+      <svg width="13" height="13" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="1" width="16" height="26" rx="2" fill="white" fill-opacity="0.9"/>
+        <rect x="6" y="3" width="7" height="10" rx="1" fill="none" stroke="${color}" stroke-width="1.5"/>
+        <rect x="6" y="16" width="7" height="8" rx="1" fill="none" stroke="${color}" stroke-width="1.5"/>
+        <circle cx="17" cy="14" r="1.2" fill="${color}"/>
+      </svg>
+    </div>
+  `;
+};
+
+export function MapView({
+  doors,
   onDoorClick,
   searchTerm,
   onSearchChange,
@@ -94,444 +94,282 @@ export function MapView({
   onStyleToggle,
   onArrondissementToggle,
   onOrnamentationToggle,
-  onClearFilters
+  onClearFilters,
 }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any | null>(null);
+  const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
-  const userMarkerRef = useRef<any | null>(null);
-  const [selectedNeighborhood, setSelectedNeighborhood] = React.useState<string | null>(null);
+  const userMarkerRef = useRef<any>(null);
+  const leafletRef = useRef<any>(null);
+
   const [mapReady, setMapReady] = React.useState(false);
   const [userLocation, setUserLocation] = React.useState<[number, number] | null>(null);
   const [isLocating, setIsLocating] = React.useState(false);
   const [showFilters, setShowFilters] = React.useState(false);
   const [aroundMeActive, setAroundMeActive] = React.useState(false);
 
-  // Radius in kilometers for "Around me" filter
-  const AROUND_ME_RADIUS_KM = 1;
+  const totalActiveFilters =
+    selectedMaterials.length + selectedColors.length + selectedStyles.length +
+    selectedArrondissements.length + selectedOrnamentations.length;
 
+  // Init map once
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    const initializeMap = async () => {
+    const init = async () => {
       try {
         const L = await import('leaflet');
         await import('leaflet/dist/leaflet.css');
+        leafletRef.current = L;
 
-        delete (L.Icon.Default.prototype as any)._getIconUrl;
-        L.Icon.Default.mergeOptions({
-          iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-          iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-        });
-
-        const userIcon = L.divIcon({
-          className: 'custom-user-marker',
-          html: `
-            <div class="relative">
-              <div class="w-6 h-6 bg-blue-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
-              <div class="absolute inset-0 w-6 h-6 bg-blue-400 rounded-full animate-ping opacity-75"></div>
-            </div>
-          `,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12]
-        });
-
-        const map = L.map(mapRef.current, {
+        const map = L.map(mapRef.current!, {
           zoomControl: false,
-          attributionControl: false
-        }).setView([48.8566, 2.3522], 12);
+          attributionControl: false,
+        }).setView([48.8566, 2.3522], 13);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors',
-          maxZoom: 19
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+          maxZoom: 19,
         }).addTo(map);
 
-        const markers: any[] = [];
-        doors.forEach((door) => {
-          const coords = getDoorCoordinates(door);
-          
-          const doorIcon = L.divIcon({
-            className: 'custom-door-marker',
-            html: generateParisianDoorIcon(door.color),
-            iconSize: [30, 36],
-            iconAnchor: [18, 42],
-            popupAnchor: [0, -32]
-          });
-          
-          const marker = L.marker(coords, { icon: doorIcon }).addTo(map);
-          
-          const popupContent = document.createElement('div');
-          popupContent.className = 'door-popup p-0 min-w-[200px]';
-          popupContent.innerHTML = `
-            <div class="relative">
-              <img src="${door.imageUrl}" alt="Door" class="w-full h-32 object-cover rounded-t-lg">
-              <div class="absolute top-2 right-2">
-                <div class="w-6 h-6 rounded-full bg-white/80 flex items-center justify-center">
-                  <svg class="w-4 h-4 ${door.isFavorite ? 'text-red-500 fill-current' : 'text-gray-600'}" viewBox="0 0 20 20">
-                    <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
-                  </svg>
-                </div>
-              </div>
-              <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 rounded-b-lg">
-                <h3 class="text-white font-semibold text-sm">${door.neighborhood}</h3>
-                <p class="text-white/90 text-xs">${door.location}</p>
-                <div class="flex gap-1 mt-1">
-                  <span class="text-xs bg-white/20 px-2 py-0.5 rounded">${door.style}</span>
-                  <span class="text-xs bg-white/20 px-2 py-0.5 rounded">${door.color}</span>
-                </div>
-              </div>
-            </div>
-          `;
-
-          marker.bindPopup(popupContent, {
-            maxWidth: 200,
-            className: 'custom-popup'
-          });
-
-          marker.on('click', () => {
-            onDoorClick(door);
-          });
-
-          markers.push(marker);
-        });
-
         mapInstanceRef.current = map;
-        markersRef.current = markers;
         setMapReady(true);
 
-        requestUserLocation(L, map, userIcon);
-
-      } catch (error) {
-        console.error('Error initializing map:', error);
-      }
-    };
-
-    initializeMap();
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-      if (userMarkerRef.current) {
-        userMarkerRef.current.remove();
-        userMarkerRef.current = null;
-      }
-    };
-  }, [doors, onDoorClick]);
-
-  const requestUserLocation = async (L: any, map: any, userIcon: any) => {
-    const { checkGeolocationSupport, getCurrentPosition: getPosition, getGeolocationErrorMessage } = await import('@/lib/geolocation');
-
-    // Check support
-    const supportCheck = checkGeolocationSupport();
-    if (!supportCheck.supported) {
-      console.error(supportCheck.error);
-      alert(supportCheck.error || 'Géolocalisation non supportée');
-      return;
-    }
-
-    setIsLocating(true);
-
-    try {
-      const position = await getPosition({ maximumAge: 300000 });
-
-      const { latitude, longitude } = position.coords;
-      const userCoords: [number, number] = [latitude, longitude];
-      
-      setUserLocation(userCoords);
-
-      if (userMarkerRef.current) {
-        userMarkerRef.current.remove();
-      }
-
-      const userMarker = L.marker(userCoords, { icon: userIcon }).addTo(map);
-      userMarker.bindPopup(`
-        <div class="text-center p-2">
-          <div class="flex items-center justify-center gap-2 mb-2">
-            <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
-            <span class="font-semibold text-sm">Your position</span>
-          </div>
-          <p class="text-xs text-gray-600">Latitude: ${latitude.toFixed(6)}</p>
-          <p class="text-xs text-gray-600">Longitude: ${longitude.toFixed(6)}</p>
-        </div>
-      `);
-      
-      userMarkerRef.current = userMarker;
-      
-    } catch (error: any) {
-      const { getGeolocationErrorMessage } = await import('@/lib/geolocation');
-      const geoError = getGeolocationErrorMessage(error);
-
-      let errorMsg = geoError.message;
-      if (geoError.iosInstructions) {
-        errorMsg += `\n\n${geoError.iosInstructions}`;
-      }
-
-      alert(errorMsg);
-      console.error('Error getting user location:', error);
-    } finally {
-      setIsLocating(false);
-    }
-  };
-
-  const centerOnUser = () => {
-    if (userLocation && mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo(userLocation, 16);
-    } else if (mapInstanceRef.current) {
-      import('leaflet').then(L => {
-        const userIcon = L.divIcon({
-          className: 'custom-user-marker',
-          html: `
-            <div class="relative">
-              <div class="w-6 h-6 bg-blue-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
-              <div class="absolute inset-0 w-6 h-6 bg-blue-400 rounded-full animate-ping opacity-75"></div>
-            </div>
-          `,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12]
-        });
-        requestUserLocation(L, mapInstanceRef.current!, userIcon);
-      });
-    }
-  };
-
-  const zoomIn = () => {
-    mapInstanceRef.current?.zoomIn();
-  };
-
-  const zoomOut = () => {
-    mapInstanceRef.current?.zoomOut();
-  };
-
-  const flyToNeighborhood = (neighborhood: string) => {
-    const coords = PARIS_NEIGHBORHOODS[neighborhood as keyof typeof PARIS_NEIGHBORHOODS];
-    if (coords && mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo(coords, 15);
-      setSelectedNeighborhood(neighborhood);
-    }
-  };
-
-  const showAllDoors = () => {
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView([48.8566, 2.3522], 12);
-      setSelectedNeighborhood(null);
-      setAroundMeActive(false);
-    }
-  };
-
-  const activateAroundMe = () => {
-    if (!userLocation) {
-      // Request location if not available
-      if (mapInstanceRef.current) {
-        import('leaflet').then(L => {
+        // Silent geoloc
+        try {
+          const { getCurrentPosition: getPos } = await import('@/lib/geolocation');
+          const pos = await getPos({ maximumAge: 300000, timeout: 8000 });
+          const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+          setUserLocation(coords);
           const userIcon = L.divIcon({
-            className: 'custom-user-marker',
+            className: '',
             html: `
-              <div class="relative">
-                <div class="w-6 h-6 bg-blue-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
-                <div class="absolute inset-0 w-6 h-6 bg-blue-400 rounded-full animate-ping opacity-75"></div>
+              <div style="position:relative;width:20px;height:20px;">
+                <div style="width:20px;height:20px;background:#2E4A62;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>
+                <div style="position:absolute;inset:-4px;border:2px solid rgba(46,74,98,0.3);border-radius:50%;animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;"></div>
               </div>
             `,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
+            iconSize: [20, 20],
+            iconAnchor: [10, 10],
           });
-          requestUserLocation(L, mapInstanceRef.current!, userIcon);
-        });
-      }
-    } else {
-      // Center on user location
-      mapInstanceRef.current?.flyTo(userLocation, 15);
-    }
-    setAroundMeActive(true);
-    setSelectedNeighborhood(null);
-  };
-
-  // Calculate visible doors count
-  const getVisibleDoorsCount = () => {
-    if (!aroundMeActive || !userLocation) {
-      return doors.length;
-    }
-
-    return doors.filter(door => {
-      const doorCoords = getDoorCoordinates(door);
-      const from = turf.point([userLocation[1], userLocation[0]]);
-      const to = turf.point([doorCoords[1], doorCoords[0]]);
-      const distance = turf.distance(from, to, { units: 'kilometers' });
-      return distance <= AROUND_ME_RADIUS_KM;
-    }).length;
-  };
-
-  // Filter markers based on "Around me" state
-  useEffect(() => {
-    if (!mapReady || markersRef.current.length === 0) return;
-
-    markersRef.current.forEach((marker, index) => {
-      const door = doors[index];
-      if (!door) return;
-
-      const doorCoords = getDoorCoordinates(door);
-
-      if (aroundMeActive && userLocation) {
-        // Calculate distance using turf
-        const from = turf.point([userLocation[1], userLocation[0]]);
-        const to = turf.point([doorCoords[1], doorCoords[0]]);
-        const distance = turf.distance(from, to, { units: 'kilometers' });
-
-        if (distance <= AROUND_ME_RADIUS_KM) {
-          marker.addTo(mapInstanceRef.current);
-        } else {
-          marker.remove();
+          userMarkerRef.current = L.marker(coords, { icon: userIcon }).addTo(map);
+        } catch {
+          // silently ignore
         }
+      } catch (err) {
+        console.error('Map init error:', err);
+      }
+    };
+
+    init();
+
+    return () => {
+      mapInstanceRef.current?.remove();
+      mapInstanceRef.current = null;
+    };
+  }, []);
+
+  // Rebuild markers whenever doors or color filter changes
+  useEffect(() => {
+    const L = leafletRef.current;
+    const map = mapInstanceRef.current;
+    if (!L || !map || !mapReady) return;
+
+    // Remove old markers
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
+
+    const colorFilterActive = selectedColors.length > 0;
+
+    doors.forEach((door) => {
+      const coords = getDoorCoordinates(door);
+      const icon = L.divIcon({
+        className: '',
+        html: makeMarkerHtml(door, colorFilterActive),
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+      });
+      const marker = L.marker(coords, { icon }).addTo(map);
+      marker.on('click', () => onDoorClick(door));
+      markersRef.current.push(marker);
+    });
+  }, [doors, selectedColors, onDoorClick, mapReady]);
+
+  // Around me filter
+  useEffect(() => {
+    if (!mapReady || !markersRef.current.length) return;
+    markersRef.current.forEach((marker, i) => {
+      const door = doors[i];
+      if (!door) return;
+      if (aroundMeActive && userLocation) {
+        const from = turf.point([userLocation[1], userLocation[0]]);
+        const to = turf.point([getDoorCoordinates(door)[1], getDoorCoordinates(door)[0]]);
+        const dist = turf.distance(from, to, { units: 'kilometers' });
+        dist <= AROUND_ME_RADIUS_KM ? marker.addTo(mapInstanceRef.current) : marker.remove();
       } else {
-        // Show all markers
         marker.addTo(mapInstanceRef.current);
       }
     });
   }, [aroundMeActive, userLocation, mapReady, doors]);
 
-  const neighborhoods = Array.from(new Set(doors.map(door => door.neighborhood)));
-  const visibleDoorsCount = getVisibleDoorsCount();
+  const visibleCount = aroundMeActive && userLocation
+    ? doors.filter(d => {
+        const from = turf.point([userLocation[1], userLocation[0]]);
+        const to = turf.point([getDoorCoordinates(d)[1], getDoorCoordinates(d)[0]]);
+        return turf.distance(from, to, { units: 'kilometers' }) <= AROUND_ME_RADIUS_KM;
+      }).length
+    : doors.length;
+
+  const centerOnUser = async () => {
+    if (userLocation) { mapInstanceRef.current?.flyTo(userLocation, 16); return; }
+    setIsLocating(true);
+    try {
+      const { getCurrentPosition: getPos } = await import('@/lib/geolocation');
+      const pos = await getPos({ maximumAge: 0 });
+      const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+      setUserLocation(coords);
+      mapInstanceRef.current?.flyTo(coords, 16);
+    } catch { /* ignore */ }
+    finally { setIsLocating(false); }
+  };
+
+  const glassStyle: React.CSSProperties = {
+    background: 'rgba(250, 247, 242, 0.88)',
+    backdropFilter: 'blur(16px)',
+    WebkitBackdropFilter: 'blur(16px)',
+    border: '1px solid rgba(229, 227, 223, 0.8)',
+  };
 
   return (
-    <div className="relative h-screen bg-background">
+    <div className="relative h-screen overflow-hidden">
       <div ref={mapRef} className="absolute inset-0 z-0" />
-      
+
       <style>{`
-        .custom-popup .leaflet-popup-content-wrapper {
-          border-radius: 0.75rem;
-          padding: 0;
-          background: white;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-        .custom-popup .leaflet-popup-tip {
-          background: white;
-        }
-        .custom-door-marker {
-          background: transparent;
-          border: none;
-        }
-        .custom-user-marker {
-          background: transparent;
-          border: none;
+        .leaflet-container { background: #f0ebe3; }
+        @keyframes ping {
+          75%, 100% { transform: scale(2); opacity: 0; }
         }
       `}</style>
 
-      <div className="absolute top-4 left-4 right-4 z-10">
-        <Card className="p-3 bg-background/95 backdrop-blur-lg">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold">Map Filters</span>
-            </div>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setShowFilters(!showFilters)}
-              className="text-xs h-7"
-            >
-              {showFilters ? 'Hide' : 'Show'} Filters
-            </Button>
+      {/* Top bar */}
+      <div className="absolute top-4 left-4 right-4 z-10 space-y-2">
+        <div className="flex gap-2">
+          <div className="flex-1 relative" style={{ ...glassStyle, borderRadius: 999, overflow: 'hidden' }}>
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-charcoal/50" />
+            <input
+              type="text"
+              placeholder="Search by street, style..."
+              value={searchTerm}
+              onChange={e => onSearchChange(e.target.value)}
+              className="w-full bg-transparent pl-10 pr-4 py-2.5 text-sm text-night placeholder:text-charcoal/50 focus:outline-none"
+            />
           </div>
-          
-          {showFilters && (
-            <div className="mt-3">
-              <SearchFilter
-                searchTerm={searchTerm}
-                onSearchChange={onSearchChange}
-                selectedMaterials={selectedMaterials}
-                selectedColors={selectedColors}
-                selectedStyles={selectedStyles}
-                selectedArrondissements={selectedArrondissements}
-                selectedOrnamentations={selectedOrnamentations}
-                onMaterialToggle={onMaterialToggle}
-                onColorToggle={onColorToggle}
-                onStyleToggle={onStyleToggle}
-                onArrondissementToggle={onArrondissementToggle}
-                onOrnamentationToggle={onOrnamentationToggle}
-                onClearFilters={onClearFilters}
-              />
-            </div>
-          )}
+          <button
+            onClick={() => setShowFilters(v => !v)}
+            className="w-10 h-10 flex items-center justify-center rounded-full relative flex-shrink-0"
+            style={glassStyle}
+          >
+            <SlidersHorizontal className="w-4 h-4 text-night" />
+            {totalActiveFilters > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-haussmann text-cream text-[9px] font-bold rounded-full flex items-center justify-center">
+                {totalActiveFilters}
+              </span>
+            )}
+          </button>
+        </div>
 
-          {!showFilters && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              <Button
-                size="sm"
-                variant={!aroundMeActive ? "default" : "outline"}
-                onClick={showAllDoors}
-                className="text-xs h-7"
-              >
-                All Paris
-              </Button>
-              <Button
-                size="sm"
-                variant={aroundMeActive ? "default" : "outline"}
-                onClick={activateAroundMe}
-                disabled={isLocating}
-                className="text-xs h-7"
-              >
-                {isLocating ? (
-                  <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                ) : (
-                  <Navigation className="w-3 h-3 mr-1" />
-                )}
-                Around me
-              </Button>
+        {showFilters && (
+          <div className="rounded-2xl overflow-hidden overflow-y-auto max-h-[60vh]" style={glassStyle}>
+            <div className="flex items-center justify-between px-5 pt-4 pb-2">
+              <span className="text-xs font-semibold tracking-widest text-charcoal uppercase">Filters</span>
+              <button onClick={() => setShowFilters(false)}>
+                <X className="w-4 h-4 text-charcoal" />
+              </button>
             </div>
-          )}
-        </Card>
+            <SearchFilter
+              searchTerm={searchTerm}
+              onSearchChange={onSearchChange}
+              selectedMaterials={selectedMaterials}
+              selectedColors={selectedColors}
+              selectedStyles={selectedStyles}
+              selectedArrondissements={selectedArrondissements}
+              selectedOrnamentations={selectedOrnamentations}
+              onMaterialToggle={onMaterialToggle}
+              onColorToggle={onColorToggle}
+              onStyleToggle={onStyleToggle}
+              onArrondissementToggle={onArrondissementToggle}
+              onOrnamentationToggle={onOrnamentationToggle}
+              onClearFilters={onClearFilters}
+            />
+          </div>
+        )}
+
+        {/* Active color legend */}
+        {selectedColors.length > 0 && (
+          <div className="flex gap-2 flex-wrap">
+            {selectedColors.map(c => (
+              <div
+                key={c}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full"
+                style={{ ...glassStyle, borderRadius: 999 }}
+              >
+                <div
+                  className="w-3 h-3 rounded-full border border-white/50"
+                  style={{ background: DOOR_COLOR_HEX[c] || '#2E4A62' }}
+                />
+                <span className="text-xs font-medium text-night">{c}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="absolute bottom-36 left-4 z-10 flex flex-col gap-2">
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={centerOnUser}
-          disabled={isLocating}
-          className="w-10 h-10 p-0 bg-background/95 backdrop-blur-lg"
-          title="My position"
-        >
-          {isLocating ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Navigation className="w-4 h-4 text-blue-500" />
-          )}
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={zoomIn}
-          className="w-10 h-10 p-0 bg-background/95 backdrop-blur-lg"
-        >
-          <ZoomIn className="w-4 h-4" />
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={zoomOut}
-          className="w-10 h-10 p-0 bg-background/95 backdrop-blur-lg"
-        >
-          <ZoomOut className="w-4 h-4" />
-        </Button>
+      {/* Zoom controls */}
+      <div className="absolute right-4 bottom-40 z-10 flex flex-col gap-2">
+        <button onClick={() => mapInstanceRef.current?.zoomIn()} className="w-10 h-10 flex items-center justify-center rounded-full" style={glassStyle}>
+          <ZoomIn className="w-4 h-4 text-night" />
+        </button>
+        <button onClick={() => mapInstanceRef.current?.zoomOut()} className="w-10 h-10 flex items-center justify-center rounded-full" style={glassStyle}>
+          <ZoomOut className="w-4 h-4 text-night" />
+        </button>
       </div>
 
-      <Card className="absolute bottom-36 left-16 z-10 px-3 py-2 bg-background/95 backdrop-blur-lg">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-          <span className="text-sm font-medium">
-            {visibleDoorsCount} door{visibleDoorsCount !== 1 ? 's' : ''} {aroundMeActive ? `within ${AROUND_ME_RADIUS_KM}km` : 'on map'}
+      {/* Bottom pill row */}
+      <div className="absolute bottom-24 left-0 right-0 z-10 flex items-center justify-center gap-2 px-4">
+        <div className="px-4 py-2 rounded-full flex items-center gap-2" style={glassStyle}>
+          <div className="w-1.5 h-1.5 rounded-full bg-haussmann" />
+          <span className="text-xs font-medium text-night">
+            {visibleCount} door{visibleCount !== 1 ? 's' : ''}
+            {aroundMeActive ? ` · within ${AROUND_ME_RADIUS_KM}km` : ' · Paris'}
           </span>
         </div>
-      </Card>
 
+        <button
+          onClick={() => {
+            if (!aroundMeActive) { setAroundMeActive(true); centerOnUser(); }
+            else { setAroundMeActive(false); mapInstanceRef.current?.setView([48.8566, 2.3522], 13); }
+          }}
+          className="px-4 py-2 rounded-full flex items-center gap-2 transition-all duration-200"
+          style={aroundMeActive ? { background: '#2E4A62', border: '1px solid #2E4A62' } : glassStyle}
+        >
+          {isLocating
+            ? <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: aroundMeActive ? 'white' : '#2E4A62' }} />
+            : <Navigation className="w-3.5 h-3.5" style={{ color: aroundMeActive ? 'white' : '#2E4A62' }} />
+          }
+          <span className="text-xs font-medium" style={{ color: aroundMeActive ? 'white' : '#1C1C1C' }}>Near me</span>
+        </button>
+
+        <button onClick={centerOnUser} className="w-9 h-9 flex items-center justify-center rounded-full" style={glassStyle}>
+          <Navigation className="w-3.5 h-3.5 text-haussmann" />
+        </button>
+      </div>
+
+      {/* Loading */}
       {!mapReady && (
-        <div className="absolute inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-center justify-center">
-          <Card className="p-6 text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-sm text-muted-foreground">Loading Paris map...</p>
-          </Card>
+        <div className="absolute inset-0 z-50 flex items-center justify-center" style={{ background: '#F5F0E8' }}>
+          <div className="text-center">
+            <div className="w-10 h-10 border-4 border-haussmann border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-sm text-charcoal">Loading Paris map...</p>
+          </div>
         </div>
       )}
     </div>
