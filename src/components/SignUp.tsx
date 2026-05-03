@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 
 interface SignUpProps {
   onComplete: () => void;
@@ -12,6 +12,7 @@ interface SignUpProps {
 
 export function SignUp({ onComplete }: SignUpProps) {
   const [isSignUp, setIsSignUp] = useState(true);
+  const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -65,6 +66,9 @@ export function SignUp({ onComplete }: SignUpProps) {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: { full_name: firstName.trim() },
+          },
         });
 
         if (signUpError) {
@@ -204,6 +208,28 @@ export function SignUp({ onComplete }: SignUpProps) {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* First Name — Sign Up only */}
+              {isSignUp && (
+                <div className="space-y-2">
+                  <Label htmlFor="firstName" className="text-night font-medium">
+                    First Name
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-charcoal" />
+                    <Input
+                      id="firstName"
+                      type="text"
+                      placeholder="Marie"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="pl-10 h-12 bg-cream border-stone focus:border-haussmann transition-all duration-300"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Email Input */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-night font-medium">
@@ -273,7 +299,7 @@ export function SignUp({ onComplete }: SignUpProps) {
                 <Button
                   type="submit"
                   className="w-full h-12 text-base"
-                  disabled={isLoading || !email || !password}
+                  disabled={isLoading || !email || !password || (isSignUp && !firstName.trim())}
                 >
                   {isLoading ? (
                     <div className="flex items-center gap-2">

@@ -323,44 +323,36 @@ export function MapView({
         )}
       </div>
 
-      {/* Zoom controls */}
-      <div className="absolute right-4 bottom-40 z-10 flex flex-col gap-2">
+      {/* Right-side controls: zoom + near me + door count */}
+      <div className="absolute right-4 bottom-24 z-10 flex flex-col items-center gap-2">
         <button onClick={() => mapInstanceRef.current?.zoomIn()} className="w-10 h-10 flex items-center justify-center rounded-full" style={glassStyle}>
           <ZoomIn className="w-4 h-4 text-night" />
         </button>
         <button onClick={() => mapInstanceRef.current?.zoomOut()} className="w-10 h-10 flex items-center justify-center rounded-full" style={glassStyle}>
           <ZoomOut className="w-4 h-4 text-night" />
         </button>
-      </div>
-
-      {/* Bottom pill row */}
-      <div className="absolute bottom-24 left-0 right-0 z-10 flex items-center justify-center gap-2 px-4">
-        <div className="px-4 py-2 rounded-full flex items-center gap-2" style={glassStyle}>
-          <div className="w-1.5 h-1.5 rounded-full bg-haussmann" />
-          <span className="text-xs font-medium text-night">
-            {visibleCount} door{visibleCount !== 1 ? 's' : ''}
-            {aroundMeActive ? ` · within ${AROUND_ME_RADIUS_KM}km` : ' · Paris'}
-          </span>
-        </div>
 
         <button
           onClick={() => {
             if (!aroundMeActive) { setAroundMeActive(true); centerOnUser(); }
             else { setAroundMeActive(false); mapInstanceRef.current?.setView([48.8566, 2.3522], 13); }
           }}
-          className="px-4 py-2 rounded-full flex items-center gap-2 transition-all duration-200"
+          className="w-10 h-10 flex items-center justify-center rounded-full transition-all duration-200"
           style={aroundMeActive ? { background: '#2E4A62', border: '1px solid #2E4A62' } : glassStyle}
+          title="Near me"
         >
           {isLocating
-            ? <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: aroundMeActive ? 'white' : '#2E4A62' }} />
-            : <Navigation className="w-3.5 h-3.5" style={{ color: aroundMeActive ? 'white' : '#2E4A62' }} />
+            ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: aroundMeActive ? 'white' : '#2E4A62' }} />
+            : <Navigation className="w-4 h-4" style={{ color: aroundMeActive ? 'white' : '#2E4A62' }} />
           }
-          <span className="text-xs font-medium" style={{ color: aroundMeActive ? 'white' : '#1C1C1C' }}>Near me</span>
         </button>
 
-        <button onClick={centerOnUser} className="w-9 h-9 flex items-center justify-center rounded-full" style={glassStyle}>
-          <Navigation className="w-3.5 h-3.5 text-haussmann" />
-        </button>
+        <div className="px-3 py-1.5 rounded-full flex items-center gap-1.5" style={glassStyle}>
+          <div className="w-1.5 h-1.5 rounded-full bg-haussmann flex-shrink-0" />
+          <span className="text-xs font-medium text-night whitespace-nowrap">
+            {visibleCount} door{visibleCount !== 1 ? 's' : ''}
+          </span>
+        </div>
       </div>
 
       {/* Loading */}
