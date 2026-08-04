@@ -8,6 +8,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -15,6 +16,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   loading: true,
   signOut: async () => {},
+  deleteAccount: async () => ({ success: false, error: 'Auth provider is not ready.' }),
 });
 
 export const useAuth = () => {
@@ -102,8 +104,52 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const deleteAccount = async () => {
+    try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+
+      if (!currentSession?.access_token) {
+        return { success: false, error: 'You need to be signed in to delete your account.' };
+      }
+
+      const { data, error } = await supabase.functions.invoke('delete-account', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${currentSession.access_token}`,
+        },
+      });
+
+      if (error) {
+        logger.error('Error deleting account', error);
+        return { success: false, error: error.message || 'Account deletion failed.' };
+      }
+
+      if (data?.success === false) {
+        return { success: false, error: data.error || 'Account deletion failed.' };
+      }
+
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) {
+        logger.warn('Account deleted, but local sign out returned an error', signOutError);
+      }
+
+      setUser(null);
+      setSession(null);
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('hasAccount');
+      localStorage.removeItem('myDoors_seenBadges');
+
+      logger.info('User account deleted successfully');
+      return { success: true };
+    } catch (error) {
+      logger.error('Unexpected error deleting account', error);
+      return { success: false, error: 'Something went wrong while deleting your account.' };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signOut, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );

@@ -541,13 +541,11 @@ const Index = () => {
 
       case 'mydoors':
         return (
-          <div className="min-h-screen bg-gradient-to-br from-cream via-stone/20 to-haussmann/10 pb-20">
-            <MyDoors
-              doors={doors}
-              onDoorClick={handleDoorClick}
-              onToggleFavorite={toggleFavorite}
-            />
-          </div>
+          <MyDoors
+            doors={doors}
+            onDoorClick={handleDoorClick}
+            onToggleFavorite={toggleFavorite}
+          />
         );
 
       default:

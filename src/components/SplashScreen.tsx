@@ -10,6 +10,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [completed, setCompleted] = useState(false);
   const startXRef = useRef(0);
+  const slideXRef = useRef(0);
   const trackRef = useRef<HTMLDivElement>(null);
 
   const TRACK_PADDING = 4;
@@ -19,30 +20,46 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
   const maxSlide = getTrackWidth();
   const progress = Math.min(slideX / maxSlide, 1);
 
+  const updateSlideX = (value: number) => {
+    slideXRef.current = value;
+    setSlideX(value);
+  };
+
+  const completeSplash = () => {
+    if (completed) return;
+    updateSlideX(getTrackWidth());
+    setCompleted(true);
+    setTimeout(onFinish, 320);
+  };
+
   const handlePointerDown = (e: React.PointerEvent) => {
     if (completed) return;
+    e.preventDefault();
     setIsDragging(true);
-    startXRef.current = e.clientX - slideX;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    startXRef.current = e.clientX - slideXRef.current;
+    e.currentTarget.setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDragging) return;
-    const newX = Math.max(0, Math.min(e.clientX - startXRef.current, maxSlide));
-    setSlideX(newX);
+    e.preventDefault();
+    const currentMaxSlide = getTrackWidth();
+    const newX = Math.max(0, Math.min(e.clientX - startXRef.current, currentMaxSlide));
+    updateSlideX(newX);
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (e: React.PointerEvent) => {
     if (!isDragging) return;
+    e.preventDefault();
     setIsDragging(false);
 
-    if (progress >= 0.88) {
-      setSlideX(maxSlide);
-      setCompleted(true);
-      setTimeout(onFinish, 400);
+    const currentMaxSlide = getTrackWidth();
+    const finalProgress = currentMaxSlide > 0 ? slideXRef.current / currentMaxSlide : 0;
+
+    if (finalProgress >= 0.66) {
+      completeSplash();
     } else {
-      // Spring back
-      setSlideX(0);
+      updateSlideX(0);
     }
   };
 
@@ -74,13 +91,21 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
         {/* Slide to explore */}
         <div
           ref={trackRef}
-          className="relative flex items-center h-16 rounded-full px-1"
+          className="relative flex items-center h-16 rounded-full px-1 cursor-grab active:cursor-grabbing select-none"
           style={{
             background: 'rgba(255,255,255,0.15)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
             border: '1px solid rgba(255,255,255,0.2)',
+            touchAction: 'none',
+            WebkitUserSelect: 'none',
+            userSelect: 'none',
           }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onDoubleClick={completeSplash}
         >
           {/* Label */}
           <span
@@ -101,7 +126,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
           {/* Thumb */}
           <div
             className={cn(
-              "relative z-10 flex items-center justify-center rounded-full cursor-grab active:cursor-grabbing select-none transition-transform",
+              "relative z-10 flex items-center justify-center rounded-full pointer-events-none transition-transform",
               completed && "scale-110"
             )}
             style={{
@@ -114,10 +139,6 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
               flexShrink: 0,
               marginLeft: TRACK_PADDING,
             }}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
           >
             {completed ? (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">

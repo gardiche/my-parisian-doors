@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { Door } from '@/types/door';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getTagColor } from '@/lib/tagColors';
@@ -20,6 +18,7 @@ export const VerticalDoorCard: React.FC<VerticalDoorCardProps> = ({
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [willBeFavorite, setWillBeFavorite] = useState(door.isFavorite);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const userLocation = useUserLocation();
 
   const distance = userLocation && door.coordinates
@@ -32,86 +31,109 @@ export const VerticalDoorCard: React.FC<VerticalDoorCardProps> = ({
     setWillBeFavorite(newState);
     setIsAnimating(true);
     onToggleFavorite?.(door.id);
-
-    // Reset animation after it completes
     setTimeout(() => setIsAnimating(false), 600);
   };
 
+  type TagCategory = 'style' | 'material' | 'color' | 'ornament';
+  const tags: { label: string; category: TagCategory }[] = [
+    { label: door.style, category: 'style' },
+    { label: door.material, category: 'material' },
+    { label: door.color, category: 'color' },
+    ...(door.ornamentations?.slice(0, 2).map(o => ({ label: o, category: 'ornament' as TagCategory })) || []),
+  ];
+
   return (
-    <Card
-      className="group cursor-pointer transition-all duration-300 hover:shadow-parisian-xl bg-cream/90 backdrop-blur-sm border-stone overflow-hidden animate-fade-in"
+    <div
+      className="group relative cursor-pointer rounded-2xl overflow-hidden animate-fade-in"
       onClick={() => onCardClick?.(door)}
     >
-      {/* Image Section */}
-      <div className="relative w-full aspect-[3/4] overflow-hidden bg-stone">
+      {/* Image — full bleed */}
+      <div className="relative w-full aspect-[3/4] bg-stone">
         <img
           src={door.imageUrl}
           alt={`Door in ${door.neighborhood}`}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className={cn(
+            "w-full h-full object-cover transition-all duration-500",
+            imgLoaded ? "opacity-100 scale-100" : "opacity-0 scale-105",
+            "group-hover:scale-105"
+          )}
+          onLoad={() => setImgLoaded(true)}
         />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-night/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        {/* Gradient overlay — bottom heavy */}
+        <div className="absolute inset-0 bg-gradient-to-t from-night/80 via-night/20 to-transparent" />
 
         {/* Distance — top left */}
         {distance && (
-          <div className="absolute top-2.5 left-2.5 bg-haussmann/40 backdrop-blur-md rounded-full px-2 py-0.5 border border-white/20">
+          <div className="absolute top-2.5 left-2.5 bg-white/20 backdrop-blur-md rounded-full px-2.5 py-0.5 border border-white/15">
             <span className="text-[10px] font-medium text-white">{distance}</span>
           </div>
         )}
 
-        {/* Like button — top right, always visible */}
+        {/* Heart — top right */}
         {onToggleFavorite && (
           <button
             onClick={handleFavoriteClick}
-            className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center transition-transform duration-200 active:scale-90 border border-white/30"
-            style={{
-              background: 'rgba(255, 255, 255, 0.25)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-            }}
+            className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-200 active:scale-90 border border-white/20 bg-white/15 backdrop-blur-md"
           >
             <Heart
               className={cn(
-                "w-3.5 h-3.5 transition-all duration-300",
+                "w-4 h-4 transition-all duration-300",
                 door.isFavorite
                   ? "fill-red-500 text-red-500"
-                  : "text-white",
+                  : "text-white/90",
                 isAnimating && willBeFavorite && "animate-[heartBeat_0.6s_ease-in-out]",
                 isAnimating && !willBeFavorite && "animate-[heartBreak_0.4s_ease-out]"
               )}
             />
             {isAnimating && willBeFavorite && (
-              <div className="absolute inset-0 rounded-full animate-ping bg-red-200/40" />
+              <div className="absolute inset-0 rounded-full animate-ping bg-red-200/30" />
             )}
           </button>
         )}
-      </div>
 
-      {/* Info Section */}
-      <div className="p-3 bg-cream">
-        <h3 className="font-display font-semibold text-night text-sm mb-1 truncate">
-          {door.neighborhood}
-        </h3>
+        {/* Info overlay — bottom */}
+        <div className="absolute bottom-0 left-0 right-0 px-3 pb-3 pt-8">
+          {/* Neighborhood */}
+          <h3 className="font-display font-semibold text-white text-sm leading-tight mb-0.5 truncate">
+            {door.neighborhood}
+          </h3>
 
-        <div className="flex flex-wrap gap-1">
-          <Badge customColor={getTagColor('color', door.color)} className="text-[10px] px-1.5 py-0.5">
-            {door.color}
-          </Badge>
-          <Badge customColor={getTagColor('material', door.material)} className="text-[10px] px-1.5 py-0.5">
-            {door.material}
-          </Badge>
-          <Badge customColor={getTagColor('style', door.style)} className="text-[10px] px-1.5 py-0.5">
-            {door.style}
-          </Badge>
-          {door.ornamentations && door.ornamentations.length > 0 && (
-            door.ornamentations.slice(0, 2).map((ornament, idx) => (
-              <Badge key={idx} customColor={getTagColor('ornament', ornament)} className="text-[10px] px-1.5 py-0.5">
-                {ornament}
-              </Badge>
-            ))
-          )}
+          {/* Street */}
+          <p className="text-white/60 text-[10px] mb-2 truncate">
+            {door.location}
+          </p>
+
+          {/* Tags row */}
+          <div className="flex flex-wrap gap-1">
+            {tags.map((tag) => {
+              if (tag.category === 'color') {
+                const hex = getTagColor('color', tag.label);
+                return (
+                  <span
+                    key={tag.label}
+                    className="px-2 py-0.5 rounded-full backdrop-blur-sm border border-white/10 text-[9px] font-medium"
+                    style={{
+                      backgroundColor: `${hex}55`,
+                      color: '#FFFFFF',
+                    }}
+                  >
+                    {tag.label}
+                  </span>
+                );
+              }
+              return (
+                <span
+                  key={tag.label}
+                  className="px-2 py-0.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/10 text-[9px] font-medium text-white/85"
+                >
+                  {tag.label}
+                </span>
+              );
+            })}
+          </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 };
