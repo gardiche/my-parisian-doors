@@ -258,6 +258,40 @@ export function MyDoors({ doors, onDoorClick, onToggleFavorite }: MyDoorsProps) 
           <Trash2 className="w-4 h-4" />
           <span className="font-medium">Delete account</span>
         </button>
+        <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1 text-xs text-charcoal">
+          <a
+            href="https://myparisiandoors.com/privacy.html"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-haussmann hover:underline underline-offset-2"
+          >
+            Privacy
+          </a>
+          <a
+            href="https://myparisiandoors.com/terms.html"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-haussmann hover:underline underline-offset-2"
+          >
+            Terms
+          </a>
+          <a
+            href="https://myparisiandoors.com/data-deletion.html"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-haussmann hover:underline underline-offset-2"
+          >
+            Data deletion
+          </a>
+          <a
+            href="https://myparisiandoors.com/support.html"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-haussmann hover:underline underline-offset-2"
+          >
+            Support
+          </a>
+        </div>
       </div>
 
       <Dialog open={showDeleteAccount} onOpenChange={setShowDeleteAccount}>

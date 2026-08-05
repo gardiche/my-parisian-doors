@@ -52,7 +52,7 @@ ON public.user_favorites
 FOR SELECT
 TO authenticated
 USING (
-  (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
 );
 
 -- Admins can delete any favorite
@@ -61,7 +61,7 @@ ON public.user_favorites
 FOR DELETE
 TO authenticated
 USING (
-  (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
 );
 
 -- 5. OPTIONAL: Migrate existing favorites from doors table

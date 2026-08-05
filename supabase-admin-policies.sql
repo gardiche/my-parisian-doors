@@ -9,7 +9,7 @@ RETURNS BOOLEAN AS $$
 BEGIN
   RETURN (
     SELECT COALESCE(
-      (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin',
+      (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin',
       false
     )
   );

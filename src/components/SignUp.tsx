@@ -316,8 +316,25 @@ export function SignUp({ onComplete }: SignUpProps) {
 
           {/* Footer */}
           <div className="text-center mt-4 text-xs text-charcoal">
-            <p>
-              By continuing, you agree to our Terms of Service and Privacy Policy
+            <p className="leading-relaxed">
+              By continuing, you agree to our{' '}
+              <a
+                href="https://myparisiandoors.com/terms.html"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-haussmann underline-offset-2 hover:underline"
+              >
+                Terms of Use
+              </a>
+              {' '}and{' '}
+              <a
+                href="https://myparisiandoors.com/privacy.html"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-haussmann underline-offset-2 hover:underline"
+              >
+                Privacy Policy
+              </a>
             </p>
           </div>
         </div>

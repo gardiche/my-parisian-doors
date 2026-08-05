@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Door } from '@/types/door';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Heart, MapPin } from 'lucide-react';
+import { ArrowLeft, Flag, Heart, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getTagColor } from '@/lib/tagColors';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,6 +34,23 @@ export function DoorDetail({ door, onBack, onToggleFavorite }: DoorDetailProps) 
     setIsAnimating(true);
     onToggleFavorite(door.id);
     setTimeout(() => setIsAnimating(false), 600);
+  };
+
+  const handleReportDoor = () => {
+    const subject = `Report door ${door.id}`;
+    const body = [
+      'Hello My Parisian Doors team,',
+      '',
+      'I would like to report this door:',
+      `Door ID: ${door.id}`,
+      `Location: ${door.location}`,
+      `Neighborhood: ${door.neighborhood}`,
+      '',
+      'Reason:',
+      '',
+    ].join('\n');
+
+    window.location.href = `mailto:bonjour@myparisiandoors.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   const getPostalCode = (arrondissement?: string): string => {
@@ -124,6 +141,14 @@ export function DoorDetail({ door, onBack, onToggleFavorite }: DoorDetailProps) 
             </div>
           </button>
         </div>
+
+        <button
+          onClick={handleReportDoor}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-charcoal transition-colors hover:text-brick"
+        >
+          <Flag className="h-3.5 w-3.5" />
+          Report this door
+        </button>
 
         {/* Separator */}
         <div className="h-px bg-stone" />

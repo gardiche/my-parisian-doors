@@ -204,6 +204,13 @@ export async function toggleFavoriteDoor(doorId: string, isFavorite: boolean): P
 
 async function uploadImage(base64Image: string): Promise<string | null> {
   try {
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      logger.warn('Attempted to upload image without authentication')
+      return null
+    }
+
     // Security check: validate base64 image format
     if (!base64Image.startsWith('data:image/')) {
       logger.error('Invalid image format - not a data URL')
@@ -231,13 +238,13 @@ async function uploadImage(base64Image: string): Promise<string | null> {
     // Generate unique filename with proper extension
     const extension = blob.type.split('/')[1] || 'jpg'
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`
-    const filePath = `doors/${fileName}`
+    const filePath = `${user.id}/${fileName}`
 
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
       .from('door-images')
       .upload(filePath, blob, {
-        contentType: 'image/jpeg',
+        contentType: blob.type,
         cacheControl: '3600'
       })
 
